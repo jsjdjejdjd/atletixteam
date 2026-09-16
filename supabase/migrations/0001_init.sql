@@ -28,7 +28,7 @@ create table if not exists public.profiles (
 -- ============================================================
 create table if not exists public.athletes (
   id                uuid primary key default gen_random_uuid(),
-  user_id           uuid not null references public.profiles (id) on delete cascade,
+  user_id           uuid not null unique references public.profiles (id) on delete cascade,
   entrenador_id     uuid references public.profiles (id) on delete set null,
   nivel             text default 'Principiante' check (nivel in ('Principiante', 'Intermedio', 'Avanzado', 'Competitivo')),
   objetivo          text,
