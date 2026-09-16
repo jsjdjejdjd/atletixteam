@@ -1,5 +1,6 @@
 import { requireProfile } from "@/lib/auth";
-import { LinkButton, EmptyState, SectionCard } from "@/components/ui";
+import { LinkButton, EmptyState } from "@/components/ui";
+import EjerciciosBrowser from "@/components/ejercicios-browser";
 
 export const dynamic = "force-dynamic";
 
@@ -8,18 +9,30 @@ type Exercise = {
   nombre: string;
   categoria: string;
   dificultad: string;
+  tipo: string | null;
   video_url: string | null;
 };
 
 export default async function EjerciciosPage() {
   const { supabase } = await requireProfile();
 
-  const { data: exercises } = await supabase
-    .from("exercises")
-    .select("id, nombre, categoria, dificultad, video_url")
-    .order("nombre", { ascending: true });
+  let data: Exercise[] | null = (
+    await supabase
+      .from("exercises")
+      .select("id, nombre, categoria, dificultad, tipo, video_url")
+      .order("nombre", { ascending: true })
+  ).data as Exercise[] | null;
 
-  const list = (exercises ?? []) as Exercise[];
+  if (!data) {
+    data = (
+      await supabase
+        .from("exercises")
+        .select("id, nombre, categoria, dificultad, video_url")
+        .order("nombre", { ascending: true })
+    ).data as Exercise[] | null;
+  }
+
+  const list = data ?? [];
 
   return (
     <div className="flex flex-col gap-8">
@@ -41,35 +54,7 @@ export default async function EjerciciosPage() {
           description="Creá el primero para empezar a armar tus programas."
         />
       ) : (
-        <SectionCard>
-          <ul className="divide-y divide-zinc-800">
-            {list.map((ex) => (
-              <li
-                key={ex.id}
-                className="flex items-center justify-between gap-4 px-6 py-4"
-              >
-                <div>
-                  <p className="font-semibold">{ex.nombre}</p>
-                  <p className="text-sm text-zinc-500">
-                    {ex.categoria} · {ex.dificultad}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 text-xs">
-                  {ex.video_url ? (
-                    <a
-                      href={ex.video_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="rounded-full bg-zinc-800 px-3 py-1 text-zinc-300 transition hover:bg-zinc-700"
-                    >
-                      ▶ Video
-                    </a>
-                  ) : null}
-                </div>
-              </li>
-            ))}
-          </ul>
-        </SectionCard>
+        <EjerciciosBrowser exercises={list} />
       )}
     </div>
   );
