@@ -34,9 +34,15 @@ function fmt(n: number | null | undefined, decimals = 0) {
   });
 }
 
-function ChartTooltip({ active, payload, label }: any) {
+function ChartTooltip({
+  active,
+  payload,
+}: {
+  active?: boolean;
+  payload?: Array<{ payload?: WeeklyRow }>;
+}) {
   if (!active || !payload || payload.length === 0) return null;
-  const row: WeeklyRow = payload[0]?.payload;
+  const row: WeeklyRow = payload[0]?.payload ?? ({} as WeeklyRow);
   return (
     <div className="rounded-xl border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm shadow-xl">
       <p className="font-bold text-white">{row.label}</p>
@@ -76,7 +82,7 @@ function ChartTooltip({ active, payload, label }: any) {
 
 export function LoadAnalysis({ filters, rowsByFilter }: Props) {
   const [filter, setFilter] = useState(filters[0]?.value ?? "todos");
-  const rows = rowsByFilter[filter] ?? [];
+  const rows = useMemo(() => rowsByFilter[filter] ?? [], [rowsByFilter, filter]);
 
   const resumen = useMemo(() => {
     if (rows.length === 0) return null;

@@ -1,6 +1,7 @@
 import Link from "next/link";
-import { PRODUCTOS, linkWhatsApp } from "@/lib/supplements";
+import { PRODUCTOS } from "@/lib/supplements";
 import { ProductCard } from "@/components/supplements/product-card";
+import { WhatsAppButton } from "@/components/supplements/whatsapp-button";
 
 function Logo() {
   return (
@@ -216,14 +217,9 @@ export default function Home() {
               <p className="font-bold text-zinc-200">
                 ¿No sabés cuál te sirve? Escribime y te asesoro.
               </p>
-              <a
-                href={linkWhatsApp()}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="shrink-0 rounded-full bg-white px-6 py-3 text-sm font-bold text-zinc-950 transition hover:bg-zinc-200"
-              >
+              <WhatsAppButton className="shrink-0 rounded-full bg-white px-6 py-3 text-sm font-bold text-zinc-950 transition hover:bg-zinc-200">
                 Consultar por WhatsApp
-              </a>
+              </WhatsAppButton>
             </div>
           </div>
         </section>
