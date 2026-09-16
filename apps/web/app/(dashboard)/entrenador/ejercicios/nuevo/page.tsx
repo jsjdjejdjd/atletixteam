@@ -11,6 +11,7 @@ import {
   TextArea,
   TextInput,
 } from "@/components/ui";
+import { LEVELS } from "@/lib/levels";
 
 const CATEGORIES = [
   "Tirón",
@@ -25,8 +26,6 @@ const CATEGORIES = [
   "Movilidad",
   "Prehabilitación",
 ];
-
-const LEVELS = ["Principiante", "Intermedio", "Avanzado", "Competitivo"];
 
 export default function NuevoEjercicioPage() {
   const router = useRouter();

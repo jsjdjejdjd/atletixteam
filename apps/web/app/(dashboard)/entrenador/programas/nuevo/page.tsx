@@ -4,8 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button, Field, LinkButton, Select, TextArea, TextInput } from "@/components/ui";
-
-const LEVELS = ["Principiante", "Intermedio", "Avanzado", "Competitivo"];
+import { LEVELS, CATEGORIAS } from "@/lib/levels";
 
 export default function NuevoProgramaPage() {
   const router = useRouter();
@@ -17,6 +16,7 @@ export default function NuevoProgramaPage() {
     nivel: "Intermedio",
     duracion_semanas: "8",
     descripcion: "",
+    categoria: "general",
   });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -44,6 +44,7 @@ export default function NuevoProgramaPage() {
         descripcion: form.descripcion.trim() || null,
         entrenador_id: user?.id ?? null,
         activo: true,
+        categoria: form.categoria,
       })
       .select("id")
       .single();
@@ -79,19 +80,24 @@ export default function NuevoProgramaPage() {
             required
             value={form.nombre}
             onChange={(e) => set("nombre", e.target.value)}
-            placeholder="Ej: Bloque Fuerza Planche"
-          />
-        </Field>
-
-        <Field label="Objetivo">
-          <TextInput
-            value={form.objetivo}
-            onChange={(e) => set("objetivo", e.target.value)}
-            placeholder="Ej: Lograr el full planche"
+            placeholder="Ej: Intermedio Fuerza Total"
           />
         </Field>
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+          <Field label="Categoría de programa">
+            <Select
+              value={form.categoria}
+              onChange={(e) => set("categoria", e.target.value)}
+            >
+              {CATEGORIAS.map((c) => (
+                <option key={c.value} value={c.value}>
+                  {c.label}
+                </option>
+              ))}
+            </Select>
+          </Field>
+
           <Field label="Nivel">
             <Select
               value={form.nivel}
@@ -104,16 +110,24 @@ export default function NuevoProgramaPage() {
               ))}
             </Select>
           </Field>
-
-          <Field label="Duración (semanas)">
-            <TextInput
-              type="number"
-              min={1}
-              value={form.duracion_semanas}
-              onChange={(e) => set("duracion_semanas", e.target.value)}
-            />
-          </Field>
         </div>
+
+        <Field label="Objetivo">
+          <TextInput
+            value={form.objetivo}
+            onChange={(e) => set("objetivo", e.target.value)}
+            placeholder="Ej: Lograr el full planche"
+          />
+        </Field>
+
+        <Field label="Duración (semanas)">
+          <TextInput
+            type="number"
+            min={1}
+            value={form.duracion_semanas}
+            onChange={(e) => set("duracion_semanas", e.target.value)}
+          />
+        </Field>
 
         <Field label="Descripción">
           <TextArea

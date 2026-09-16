@@ -18,7 +18,9 @@ const ADMIN_LINKS: NavLink[] = [
 
 const ATHLETE_LINKS: NavLink[] = [
   { href: "/alumno", label: "Mi Entrenamiento" },
-  { href: "/alumno/programa", label: "Programa" },
+  { href: "/alumno/programa", label: "Mi Programa" },
+  { href: "/alumno/programas", label: "Programas" },
+  { href: "/alumno/progreso", label: "Mi Progreso" },
 ];
 
 export function DashboardShell({

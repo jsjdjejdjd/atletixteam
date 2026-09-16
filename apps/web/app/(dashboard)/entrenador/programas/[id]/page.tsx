@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
-import { EmptyState, LinkButton, SectionCard } from "@/components/ui";
+import { EmptyState, SectionCard } from "@/components/ui";
+import { categoriaLabel } from "@/lib/levels";
 import { WeekForm } from "./week-form";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +16,7 @@ export default async function ProgramaPage({
 
   const { data: program } = await supabase
     .from("programs")
-    .select("id, nombre, objetivo, nivel, duracion_semanas, descripcion")
+    .select("id, nombre, objetivo, nivel, categoria, duracion_semanas, descripcion")
     .eq("id", id)
     .single();
 
@@ -61,13 +62,23 @@ export default async function ProgramaPage({
             {program.nombre}
           </h1>
           <p className="mt-1 text-sm text-zinc-400">
-            {program.objetivo ?? "Objetivo por definir"} · {program.nivel ?? "—"}
-            · {program.duracion_semanas ?? "?"} semanas
+            {program.objetivo ?? "Objetivo por definir"}
           </p>
+          <div className="mt-2 flex flex-wrap gap-2 text-xs">
+            <span className="rounded-full bg-white px-3 py-1 font-bold text-zinc-950">
+              {categoriaLabel(program.categoria)}
+            </span>
+            <span className="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300">
+              Nivel {program.nivel ?? "—"}
+            </span>
+            <span className="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300">
+              {program.duracion_semanas ?? "?"} semanas
+            </span>
+          </div>
         </div>
-        <LinkButton href={`/entrenador/alumnos?programa=${id}`} variant="secondary">
-          Asignar a alumnos
-        </LinkButton>
+        <p className="max-w-52 text-right text-xs text-zinc-600">
+          Los alumnos eligen el programa desde su cuenta.
+        </p>
       </section>
 
       <div className="rounded-2xl border border-zinc-800 bg-zinc-900/30 px-6 py-4 text-sm text-zinc-400">

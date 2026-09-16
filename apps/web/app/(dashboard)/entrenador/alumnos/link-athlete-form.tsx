@@ -3,13 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Button, Field } from "@/components/ui";
+import { Button, Field, Select } from "@/components/ui";
 
 export function LinkAthleteForm() {
   const router = useRouter();
   const supabase = createClient();
 
   const [email, setEmail] = useState("");
+  const [nivel, setNivel] = useState("Principiante");
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -67,7 +68,7 @@ export function LinkAthleteForm() {
     const { error } = await supabase.from("athletes").insert({
       user_id: profile.id,
       entrenador_id: user.id,
-      nivel: "Principiante",
+      nivel: nivel,
       objetivo: null,
       estado: "activo",
     });
@@ -95,6 +96,15 @@ export function LinkAthleteForm() {
           placeholder="alumno@email.com"
           className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-2.5 text-sm text-zinc-100 outline-none transition focus:border-zinc-500"
         />
+      </Field>
+      <Field label="Nivel del alumno">
+        <Select value={nivel} onChange={(e) => setNivel(e.target.value)}>
+          {["Principiante", "Intermedio", "Avanzado", "Elite"].map((l) => (
+            <option key={l} value={l}>
+              {l}
+            </option>
+          ))}
+        </Select>
       </Field>
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={loading}>

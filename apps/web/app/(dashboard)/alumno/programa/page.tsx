@@ -15,10 +15,20 @@ export default async function ProgramaAlumnoPage() {
 
   if (!athlete) {
     return (
-      <EmptyState
-        title="Todavía no sos un alumno activo"
-        description="Tu entrenador va a vincular tu cuenta. Cuando lo haga, acá vas a ver tu programa."
-      />
+      <div className="flex flex-col gap-6">
+        <EmptyState
+          title="No estás anotado en ningún programa todavía"
+          description="Entrá al catálogo y elegí el programa que quieras empezar."
+        />
+        <div>
+          <Link
+            href="/alumno/programas"
+            className="rounded-lg bg-white px-5 py-2.5 text-sm font-bold text-zinc-950"
+          >
+            Ver programas
+          </Link>
+        </div>
+      </div>
     );
   }
 
@@ -31,10 +41,20 @@ export default async function ProgramaAlumnoPage() {
 
   if (!assignment) {
     return (
-      <EmptyState
-        title="Todavía no tenés un programa asignado"
-        description="Cuando tu entrenador te asigne un programa, aparece acá."
-      />
+      <div className="flex flex-col gap-6">
+        <EmptyState
+          title="Todavía no elegiste un programa"
+          description="Entrá al catálogo, mirá las opciones y empezá la que más te sirva."
+        />
+        <div>
+          <Link
+            href="/alumno/programas"
+            className="rounded-lg bg-white px-5 py-2.5 text-sm font-bold text-zinc-950"
+          >
+            Ver programas
+          </Link>
+        </div>
+      </div>
     );
   }
 
@@ -90,6 +110,14 @@ export default async function ProgramaAlumnoPage() {
           {program.objetivo ?? "Objetivo por definir"} ·{" "}
           {program.duracion_semanas ?? "?"} semanas
         </p>
+        <div className="mt-4">
+          <Link
+            href="/alumno/programas"
+            className="inline-flex rounded-lg border border-zinc-800 px-4 py-2 text-sm font-medium text-zinc-300 transition hover:border-zinc-600 hover:text-white"
+          >
+            Cambiar de programa
+          </Link>
+        </div>
       </section>
 
       {weeks.length === 0 ? (
