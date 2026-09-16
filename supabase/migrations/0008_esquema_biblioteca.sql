@@ -42,7 +42,7 @@ alter table public.exercises
     check (agarre in ('prono', 'supino', 'neutro', 'mixto', 'otro'))
     not valid,
   add constraint exercises_agarre_ancho_check
-    check (agarre_ancho in ('ancho', 'hombros', 'estrecho'))
+    check (agarre_ancho in ('ancho', 'hombros', 'estrecho', 'otro'))
     not valid,
   add constraint exercises_empenaje_check
     check (empenaje_tipo in ('peso corporal', 'lastre', 'banda', 'pesa', 'cinturon'))
