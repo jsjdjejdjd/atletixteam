@@ -84,9 +84,15 @@ export default async function AlumnoPage() {
             </span>
           </div>
           <p className="mt-6 text-sm text-zinc-500">
-            Los entrenamientos del programa se van a habilitar en la próxima
-            fase.
+            Abrí tu programa para ver las semanas y cada sesión de
+            entrenamiento.
           </p>
+          <a
+            href="/alumno/programa"
+            className="mt-4 inline-flex rounded-lg bg-white px-5 py-2.5 text-sm font-bold text-zinc-950 transition hover:bg-zinc-200"
+          >
+            Ver mi programa →
+          </a>
         </section>
       ) : (
         <section className="rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/20 p-6">

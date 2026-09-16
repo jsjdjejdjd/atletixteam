@@ -1,0 +1,154 @@
+import Link from "next/link";
+import { requireProfile } from "@/lib/auth";
+import { EmptyState } from "@/components/ui";
+
+export const dynamic = "force-dynamic";
+
+export default async function ProgramaAlumnoPage() {
+  const { supabase, user } = await requireProfile();
+
+  const { data: athlete } = await supabase
+    .from("athletes")
+    .select("id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (!athlete) {
+    return (
+      <EmptyState
+        title="Todavía no sos un alumno activo"
+        description="Tu entrenador va a vincular tu cuenta. Cuando lo haga, acá vas a ver tu programa."
+      />
+    );
+  }
+
+  const { data: assignment } = await supabase
+    .from("athlete_programs")
+    .select("program_id, estado, fecha_inicio")
+    .eq("athlete_id", athlete.id)
+    .eq("estado", "activo")
+    .maybeSingle();
+
+  if (!assignment) {
+    return (
+      <EmptyState
+        title="Todavía no tenés un programa asignado"
+        description="Cuando tu entrenador te asigne un programa, aparece acá."
+      />
+    );
+  }
+
+  const [programRes, weeksRes] = await Promise.all([
+    supabase
+      .from("programs")
+      .select("id, nombre, objetivo, nivel, duracion_semanas, descripcion")
+      .eq("id", assignment.program_id)
+      .single(),
+    supabase
+      .from("weeks")
+      .select("id, numero, objetivo, es_descarga")
+      .eq("program_id", assignment.program_id)
+      .order("numero", { ascending: true }),
+  ]);
+
+  const program = programRes.data;
+  if (!program) {
+    return <p className="text-zinc-500">Programa no encontrado.</p>;
+  }
+
+  const weeks = (weeksRes.data ?? []) as {
+    id: string;
+    numero: number;
+    objetivo: string | null;
+    es_descarga: boolean;
+  }[];
+
+  const weekIds = weeks.map((w) => w.id);
+
+  const { data: workoutsRaw } = weekIds.length
+    ? await supabase
+        .from("workouts")
+        .select("id, week_id, nombre, dia, descripcion")
+        .in("week_id", weekIds)
+        .order("orden", { ascending: true })
+    : { data: null };
+
+  const workoutsByWeek = new Map<string, typeof workoutsRaw>();
+  for (const wo of workoutsRaw ?? []) {
+    if (!workoutsByWeek.has(wo.week_id)) workoutsByWeek.set(wo.week_id, []);
+    workoutsByWeek.get(wo.week_id)!.push(wo);
+  }
+
+  return (
+    <div className="flex flex-col gap-8">
+      <section>
+        <p className="text-sm font-medium text-zinc-500">Tu programa actual</p>
+        <h1 className="mt-2 text-3xl font-black tracking-tight">
+          {program.nombre}
+        </h1>
+        <p className="mt-1 text-sm text-zinc-400">
+          {program.objetivo ?? "Objetivo por definir"} ·{" "}
+          {program.duracion_semanas ?? "?"} semanas
+        </p>
+      </section>
+
+      {weeks.length === 0 ? (
+        <EmptyState
+          title="Tu programa todavía no tiene semanas"
+          description="Tu entrenador está armando la planificación."
+        />
+      ) : (
+        <div className="flex flex-col gap-6">
+          {weeks.map((week) => {
+            const sessions = workoutsByWeek.get(week.id) ?? [];
+            return (
+              <section
+                key={week.id}
+                className={`rounded-2xl border p-6 ${
+                  week.es_descarga
+                    ? "border-amber-900/70 bg-amber-950/20"
+                    : "border-zinc-800 bg-zinc-900/40"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-extrabold">Semana {week.numero}</h2>
+                  {week.es_descarga ? (
+                    <span className="rounded-full bg-amber-950 px-3 py-1 text-xs font-semibold text-amber-300">
+                      Descarga
+                    </span>
+                  ) : null}
+                </div>
+                {week.objetivo ? (
+                  <p className="mt-1 text-sm text-zinc-400">{week.objetivo}</p>
+                ) : null}
+
+                <ul className="mt-4 flex flex-col gap-2">
+                  {sessions.length === 0 ? (
+                    <li className="text-sm text-zinc-600">
+                      Sin sesiones cargadas todavía.
+                    </li>
+                  ) : (
+                    sessions.map((s) => (
+                      <li key={s.id}>
+                        <Link
+                          href={`/alumno/entrenamientos/${s.id}`}
+                          className="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950/50 px-4 py-3 transition hover:border-zinc-600"
+                        >
+                          <span className="font-semibold">
+                            {s.dia ? `Día ${s.dia} · ` : ""}
+                            {s.nombre}
+                          </span>
+                          <span className="text-xs text-zinc-500">Abrir →</span>
+                        </Link>
+                      </li>
+                    ))
+                  )}
+                </ul>
+              </section>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}

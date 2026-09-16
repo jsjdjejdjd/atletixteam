@@ -1,0 +1,179 @@
+import Link from "next/link";
+import { requireProfile } from "@/lib/auth";
+import { LiveWorkout } from "./live-workout";
+
+export const dynamic = "force-dynamic";
+
+type We = {
+  id: string;
+  exercise_id: string | null;
+  orden: number;
+  series: number | null;
+  repeticiones: string | null;
+  tiempo: string | null;
+  rir: number | null;
+  descanso_segundos: number | null;
+  peso: string | null;
+  tempo: string | null;
+  asistencia: string | null;
+  notas: string | null;
+  video_url: string | null;
+  sugerencia_progresion: string | null;
+};
+
+type Serie = {
+  serie: number;
+  reps?: string | null;
+  peso?: string | null;
+  rir?: number | null;
+  descanso?: number | null;
+};
+
+export default async function EntrenamientoAlumnoPage({
+  params,
+}: {
+  params: Promise<{ workoutId: string }>;
+}) {
+  const { workoutId } = await params;
+  const { supabase, user } = await requireProfile();
+
+  const hoy = new Date().toISOString().slice(0, 10);
+
+  const [workoutRes, weRes, libRes] = await Promise.all([
+    supabase
+      .from("workouts")
+      .select("id, nombre, dia, week_id")
+      .eq("id", workoutId)
+      .single(),
+    supabase
+      .from("workout_exercises")
+      .select("*")
+      .eq("workout_id", workoutId)
+      .order("orden", { ascending: true }),
+    supabase
+      .from("exercises")
+      .select("id, nombre, video_url")
+      .order("nombre", { ascending: true }),
+  ]);
+
+  const workout = workoutRes.data;
+  if (!workout) {
+    return <p className="text-zinc-500">Entrenamiento no encontrado.</p>;
+  }
+
+  const raw = (weRes.data ?? []) as We[];
+  if (raw.length === 0) {
+    return (
+      <div className="flex flex-col gap-8">
+        <section>
+          <div className="flex items-center gap-2 text-sm text-zinc-500">
+            <Link href="/alumno/programa" className="hover:text-zinc-300">
+              Programa
+            </Link>
+            <span>/</span>
+            <span className="text-zinc-300">{workout.nombre}</span>
+          </div>
+          <h1 className="mt-2 text-3xl font-black tracking-tight">
+            {workout.nombre}
+          </h1>
+        </section>
+        <p className="text-zinc-500">
+          Tu entrenador todavía no cargó los ejercicios de esta sesión.
+        </p>
+      </div>
+    );
+  }
+
+  const ids = raw.map((w) => w.id);
+  const lib = new Map(
+    (libRes.data ?? []).map(
+      (l: { id: string }) => [l.id, l] as const
+    )
+  );
+
+  const [logsRes, videosRes] = await Promise.all([
+    supabase
+      .from("workout_logs")
+      .select("id, workout_exercise_id, series_data, comentarios, completado")
+      .eq("athlete_id", user.id)
+      .eq("fecha", hoy)
+      .in("workout_exercise_id", ids),
+    supabase
+      .from("videos")
+      .select("workout_exercise_id, storage_path")
+      .eq("athlete_id", user.id)
+      .in("workout_exercise_id", ids)
+      .order("created_at", { ascending: false }),
+  ]);
+
+  const logMap = new Map(
+    (logsRes.data ?? []).map((l) => [l.workout_exercise_id, l])
+  );
+  const videoMap = new Map<string, string>();
+  for (const v of videosRes.data ?? []) {
+    if (!videoMap.has(v.workout_exercise_id)) {
+      videoMap.set(v.workout_exercise_id, v.storage_path);
+    }
+  }
+
+  const exercises = raw.map((w) => {
+    const info = w.exercise_id ? lib.get(w.exercise_id) : null;
+    const log = logMap.get(w.id);
+    const path = videoMap.get(w.id);
+    return {
+      id: w.id,
+      exercise_id: w.exercise_id,
+      name: (info as { nombre?: string } | null)?.nombre ?? "Sin nombre",
+      target: {
+        series: w.series,
+        repeticiones: w.repeticiones,
+        tiempo: w.tiempo,
+        rir: w.rir,
+        descanso_segundos: w.descanso_segundos,
+        peso: w.peso,
+        tempo: w.tempo,
+        asistencia: w.asistencia,
+        notas: w.notas,
+        video_url: w.video_url ?? (info as { video_url?: string | null } | null)?.video_url ?? null,
+        sugerencia_progresion: w.sugerencia_progresion,
+      },
+      log: log
+        ? {
+            id: log.id,
+            series: (log.series_data ?? []) as Serie[],
+            comentarios: log.comentarios,
+          }
+        : null,
+      miVideo:
+        path !== undefined
+          ? supabase.storage.from("videos").getPublicUrl(path).data.publicUrl
+          : null,
+    };
+  });
+
+  return (
+    <div className="flex flex-col gap-8">
+      <section>
+        <div className="flex items-center gap-2 text-sm text-zinc-500">
+          <Link href="/alumno/programa" className="hover:text-zinc-300">
+            Programa
+          </Link>
+          <span>/</span>
+          <span className="text-zinc-300">{workout.nombre}</span>
+        </div>
+        <h1 className="mt-2 text-3xl font-black tracking-tight">
+          {workout.nombre}
+        </h1>
+        {workout.dia ? (
+          <p className="mt-1 text-sm text-zinc-400">Día {workout.dia}</p>
+        ) : null}
+      </section>
+
+      <LiveWorkout
+        workoutName={workout.nombre}
+        athleteId={user.id}
+        exercises={exercises}
+      />
+    </div>
+  );
+}

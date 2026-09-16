@@ -11,10 +11,14 @@ type NavLink = {
 
 const ADMIN_LINKS: NavLink[] = [
   { href: "/entrenador", label: "Dashboard" },
+  { href: "/entrenador/programas", label: "Programas" },
+  { href: "/entrenador/ejercicios", label: "Ejercicios" },
+  { href: "/entrenador/alumnos", label: "Alumnos" },
 ];
 
 const ATHLETE_LINKS: NavLink[] = [
   { href: "/alumno", label: "Mi Entrenamiento" },
+  { href: "/alumno/programa", label: "Programa" },
 ];
 
 export function DashboardShell({
