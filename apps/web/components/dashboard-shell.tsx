@@ -14,13 +14,15 @@ const ADMIN_LINKS: NavLink[] = [
   { href: "/entrenador/programas", label: "Programas" },
   { href: "/entrenador/ejercicios", label: "Ejercicios" },
   { href: "/entrenador/alumnos", label: "Alumnos" },
+  { href: "/entrenador/chat", label: "Chat" },
 ];
 
 const ATHLETE_LINKS: NavLink[] = [
-  { href: "/alumno", label: "Mi Entrenamiento" },
+  { href: "/alumno", label: "Entrenar" },
   { href: "/alumno/programa", label: "Mi Programa" },
   { href: "/alumno/programas", label: "Programas" },
-  { href: "/alumno/progreso", label: "Mi Progreso" },
+  { href: "/alumno/progreso", label: "Progreso" },
+  { href: "/alumno/chat", label: "Chat" },
 ];
 
 export function DashboardShell({
@@ -57,7 +59,7 @@ export function DashboardShell({
             </span>
           </Link>
 
-          <nav className="flex items-center gap-1">
+          <nav className="flex flex-wrap items-center justify-center gap-1">
             {links.map((link) => {
               const active = pathname === link.href;
               return (
