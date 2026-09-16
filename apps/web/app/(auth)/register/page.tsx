@@ -154,5 +154,7 @@ function translateError(message: string): string {
     return "Ese email ya tiene una cuenta. Probá iniciar sesión.";
   if (message.includes("password"))
     return "La contraseña debe tener al menos 6 caracteres.";
+  if (message.includes("rate") || message.includes("limit"))
+    return "Hay muchos registros en poco tiempo. Esperá unos minutos y probá de nuevo.";
   return "No se pudo crear la cuenta. Verificá los datos.";
 }
