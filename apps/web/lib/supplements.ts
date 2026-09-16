@@ -25,7 +25,7 @@ export const PRODUCTOS: Producto[] = [
     nombre: "Proteína 1kg — Chocolate",
     descripcion: "Whey protein para recuperación y masa muscular.",
     precio: 65000,
-    imagen: "/suplementos/proteina-1kg.jpg",
+    imagen: "/suplementos/proteina-1kg.webp",
   },
   {
     id: "creatina-300g",
@@ -33,7 +33,7 @@ export const PRODUCTOS: Producto[] = [
     nombre: "Creatina 300g",
     descripcion: "Monohidratada. Fuerza, potencia y volumen.",
     precio: 32000,
-    imagen: "/suplementos/creatina-300g.jpg",
+    imagen: "/suplementos/creatina-300g.webp",
   },
   {
     id: "citrato-magnesio-60",
@@ -41,7 +41,7 @@ export const PRODUCTOS: Producto[] = [
     nombre: "Citrato de Magnesio 60 cápsulas",
     descripcion: "Alta absorción. Mejor contracción muscular y descanso.",
     precio: 20000,
-    imagen: "/suplementos/citrato-magnesio-60.jpg",
+    imagen: "/suplementos/citrato-magnesio-60.webp",
   },
   {
     id: "combo-proteina-creatina",
@@ -50,7 +50,7 @@ export const PRODUCTOS: Producto[] = [
     descripcion: "Proteína (gusto a elección / stock) + creatina 300g.",
     etiqueta: "Ahorrás más",
     precio: 92000,
-    imagen: "/suplementos/combo.jpg",
+    imagen: "/suplementos/combo.webp",
   },
 ];
 
