@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import type { Producto } from "@/lib/supplements";
-import { formatearPrecio } from "@/lib/supplements";
-import { WhatsAppButton } from "@/components/supplements/whatsapp-button";
+import { formatearPrecio, linkWhatsApp } from "@/lib/supplements";
 
 export function ProductCard({ producto }: { producto: Producto }) {
   const [imgError, setImgError] = useState(false);
@@ -41,12 +40,14 @@ export function ProductCard({ producto }: { producto: Producto }) {
         <h3 className="mt-1 font-bold">{producto.nombre}</h3>
         <p className="mt-1 text-sm leading-relaxed text-zinc-400">{producto.descripcion}</p>
         <p className="mt-3 text-lg font-black">{formatearPrecio(producto.precio)}</p>
-        <WhatsAppButton
-          productoNombre={producto.nombre}
-          className="mt-4 w-full rounded-full bg-white px-4 py-2.5 text-center text-sm font-bold text-zinc-950 transition hover:bg-zinc-200"
+        <a
+          href={linkWhatsApp(producto.nombre)}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-4 block w-full rounded-full bg-white px-4 py-2.5 text-center text-sm font-bold text-zinc-950 transition hover:bg-zinc-200"
         >
           Pedir por WhatsApp
-        </WhatsAppButton>
+        </a>
       </div>
     </div>
   );
