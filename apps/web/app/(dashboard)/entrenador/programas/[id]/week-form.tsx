@@ -39,6 +39,7 @@ export function WeekForm({ programId }: { programId: string }) {
     setObjetivo("");
     setNotas("");
     setEsDescarga("no");
+    setLoading(false);
     router.refresh();
   }
 

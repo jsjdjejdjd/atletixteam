@@ -37,6 +37,7 @@ export function WorkoutForm({ weekId }: { weekId: string }) {
     setNombre("");
     setDia(String(Number(dia) + 1));
     setDescripcion("");
+    setLoading(false);
     router.refresh();
   }
 
