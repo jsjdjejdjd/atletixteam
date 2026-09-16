@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
-import { EmptyState, SectionCard } from "@/components/ui";
+import { EmptyState, SectionCard, LinkButton } from "@/components/ui";
 import { categoriaLabel } from "@/lib/levels";
 import { WeekForm } from "./week-form";
+import { DeleteButton } from "@/components/delete-button";
 
 export const dynamic = "force-dynamic";
 
@@ -76,9 +77,26 @@ export default async function ProgramaPage({
             </span>
           </div>
         </div>
-        <p className="max-w-52 text-right text-xs text-zinc-600">
-          Los alumnos eligen el programa desde su cuenta.
-        </p>
+        <div className="flex flex-col items-end gap-2">
+          <div className="flex items-center gap-2">
+            <LinkButton
+              href={`/entrenador/programas/${id}/editar`}
+              variant="secondary"
+            >
+              Editar
+            </LinkButton>
+            <DeleteButton
+              tabla="programs"
+              id={id}
+              label="Eliminar"
+              confirmLabel="Eliminar programa"
+              redirectTo="/entrenador/programas"
+            />
+          </div>
+          <p className="max-w-52 text-right text-xs text-zinc-600">
+            Los alumnos eligen el programa desde su cuenta.
+          </p>
+        </div>
       </section>
 
       <div className="rounded-2xl border border-zinc-800 bg-zinc-900/30 px-6 py-4 text-sm text-zinc-400">
@@ -116,30 +134,42 @@ export default async function ProgramaPage({
               </h2>
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 {semanas.map((w) => (
-                  <Link
+                  <div
                     key={w.id}
-                    href={`/entrenador/programas/${id}/semanas/${w.id}`}
-                    className={`group rounded-2xl border p-5 transition hover:border-zinc-600 ${
+                    className={`flex flex-col rounded-2xl border p-5 transition hover:border-zinc-600 ${
                       w.es_descarga
                         ? "border-amber-900/70 bg-amber-950/20"
                         : "border-zinc-800 bg-zinc-900/40"
                     }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <p className="text-2xl font-black">Semana {w.numero}</p>
-                      {w.es_descarga ? (
-                        <span className="rounded-full bg-amber-950 px-3 py-1 text-xs font-semibold text-amber-300">
-                          Descarga
-                        </span>
+                    <Link
+                      href={`/entrenador/programas/${id}/semanas/${w.id}`}
+                      className="flex flex-1 flex-col"
+                    >
+                      <div className="flex items-center justify-between">
+                        <p className="text-2xl font-black">Semana {w.numero}</p>
+                        {w.es_descarga ? (
+                          <span className="rounded-full bg-amber-950 px-3 py-1 text-xs font-semibold text-amber-300">
+                            Descarga
+                          </span>
+                        ) : null}
+                      </div>
+                      {w.objetivo ? (
+                        <p className="mt-1 text-sm text-zinc-400">{w.objetivo}</p>
                       ) : null}
+                      <p className="mt-3 text-xs font-medium text-zinc-500 transition group-hover:text-zinc-300">
+                        Ver sesiones →
+                      </p>
+                    </Link>
+                    <div className="mt-3 flex justify-end">
+<DeleteButton
+                        tabla="weeks"
+                        id={w.id}
+                        label="Eliminar semana"
+                        confirmLabel="Eliminar"
+                      />
                     </div>
-                    {w.objetivo ? (
-                      <p className="mt-1 text-sm text-zinc-400">{w.objetivo}</p>
-                    ) : null}
-                    <p className="mt-3 text-xs font-medium text-zinc-500 transition group-hover:text-zinc-300">
-                      Ver sesiones →
-                    </p>
-                  </Link>
+                  </div>
                 ))}
               </div>
             </section>

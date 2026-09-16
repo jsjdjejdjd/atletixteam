@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
 import { EmptyState, SectionCard } from "@/components/ui";
+import { DeleteButton } from "@/components/delete-button";
 import { WorkoutForm } from "./workout-form";
 
 export const dynamic = "force-dynamic";
@@ -77,22 +78,30 @@ export default async function SemanaPage({
           <ul className="divide-y divide-zinc-800">
             {list.map((wo) => (
               <li key={wo.id}>
-                <Link
-                  href={`/entrenador/programas/${id}/semanas/${weekId}/entrenamientos/${wo.id}`}
-                  className="flex items-center justify-between gap-4 px-6 py-4 transition hover:bg-zinc-900/60"
-                >
-                  <div>
-                    <p className="font-semibold">
-                      Día {wo.dia ?? "?"} · {wo.nombre}
-                    </p>
-                    {wo.descripcion ? (
-                      <p className="text-sm text-zinc-500">{wo.descripcion}</p>
-                    ) : null}
-                  </div>
-                  <span className="text-xs font-medium text-zinc-500">
-                    Armar ejercicios →
-                  </span>
-                </Link>
+                <div className="flex items-center justify-between gap-4 px-6 py-4 transition hover:bg-zinc-900/60">
+                  <Link
+                    href={`/entrenador/programas/${id}/semanas/${weekId}/entrenamientos/${wo.id}`}
+                    className="flex flex-1 items-center justify-between gap-4"
+                  >
+                    <div>
+                      <p className="font-semibold">
+                        Día {wo.dia ?? "?"} · {wo.nombre}
+                      </p>
+                      {wo.descripcion ? (
+                        <p className="text-sm text-zinc-500">{wo.descripcion}</p>
+                      ) : null}
+                    </div>
+                    <span className="text-xs font-medium text-zinc-500">
+                      Armar ejercicios →
+                    </span>
+                  </Link>
+                  <DeleteButton
+                    tabla="workouts"
+                    id={wo.id}
+                    label="Eliminar"
+                    confirmLabel="Eliminar sesión"
+                  />
+                </div>
               </li>
             ))}
           </ul>
