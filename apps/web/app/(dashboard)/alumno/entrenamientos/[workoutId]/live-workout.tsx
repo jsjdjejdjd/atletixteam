@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui";
@@ -34,6 +34,32 @@ type Exercise = {
 };
 
 type Row = { done: boolean; reps: string; peso: string; rir: string; descanso: string };
+
+function playBeep() {
+  try {
+    const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    if (!Ctor) return;
+    const ctx = new Ctor();
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.connect(g);
+    g.connect(ctx.destination);
+    o.type = "sine";
+    o.frequency.value = 880;
+    g.gain.setValueAtTime(0.25, 0);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.5);
+    o.start();
+    o.stop(ctx.currentTime + 0.5);
+  } catch {
+    /* sin audio */
+  }
+}
+
+function formatTimerTime(total: number) {
+  const m = Math.floor(total / 60);
+  const s = total % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
 
 export function LiveWorkout({
   workoutName,
@@ -108,6 +134,36 @@ export function LiveWorkout({
     [data]
   );
 
+  const [timerRemaining, setTimerRemaining] = useState<number | null>(null);
+  const [timerRunning, setTimerRunning] = useState(false);
+
+  useEffect(() => {
+    if (timerRemaining === null || !timerRunning) return;
+    const id = setInterval(() => {
+      setTimerRemaining((r) => {
+        if (r === null) return null;
+        const next = Math.max(r - 1, 0);
+        if (next === 0) playBeep();
+        return next;
+      });
+    }, 1000);
+    return () => clearInterval(id);
+  }, [timerRemaining, timerRunning]);
+
+  function startTimer(seconds: number) {
+    setTimerRemaining(seconds);
+    setTimerRunning(true);
+  }
+
+  function toggleTimer() {
+    setTimerRunning((r) => !r);
+  }
+
+  function stopTimer() {
+    setTimerRunning(false);
+    setTimerRemaining(null);
+  }
+
   async function handleFinish() {
     setSaving(true);
     setError(null);
@@ -174,6 +230,7 @@ export function LiveWorkout({
             onRow={(idx, patch) => setRow(ex.id, idx, patch)}
             onAddRow={() => addRow(ex.id)}
             onRemoveRow={(idx) => removeRow(ex.id, idx)}
+            onRestStart={() => startTimer(ex.target.descanso_segundos ?? 90)}
             comentario={data[ex.id].comentario}
             onComentario={(v) =>
               setData((d) => ({ ...d, [ex.id]: { ...d[ex.id], comentario: v } }))
@@ -182,21 +239,30 @@ export function LiveWorkout({
         ))}
       </ol>
 
-      <div className="sticky bottom-4 flex items-center justify-between gap-4 rounded-2xl border border-zinc-800 bg-zinc-950/95 p-4 backdrop-blur">
-        <div>
-          {anyDone ? (
-            <p className="text-sm text-zinc-400">
-              Vas guardando {workoutName} · marcá cada serie cuando la completes
-            </p>
-          ) : (
-            <p className="text-sm text-zinc-500">
-              Marcá las series que vayas completando.
-            </p>
-          )}
+      <div className="sticky bottom-4 flex flex-col gap-3 rounded-2xl border border-zinc-800 bg-zinc-950/95 p-4 backdrop-blur">
+        <RestTimerBar
+          remaining={timerRemaining}
+          running={timerRunning}
+          onStart={startTimer}
+          onToggle={toggleTimer}
+          onStop={stopTimer}
+        />
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-zinc-800 pt-3">
+          <div>
+            {anyDone ? (
+              <p className="text-sm text-zinc-400">
+                Vas guardando {workoutName} · marcá cada serie cuando la completes
+              </p>
+            ) : (
+              <p className="text-sm text-zinc-500">
+                Marcá las series que vayas completando.
+              </p>
+            )}
+          </div>
+          <Button type="button" onClick={handleFinish} disabled={saving || !anyDone}>
+            {saving ? "Guardando…" : "Finalizar y guardar ✓"}
+          </Button>
         </div>
-        <Button type="button" onClick={handleFinish} disabled={saving || !anyDone}>
-          {saving ? "Guardando…" : "Finalizar y guardar ✓"}
-        </Button>
       </div>
 
       {saved && (
@@ -219,6 +285,97 @@ export function LiveWorkout({
   );
 }
 
+const REST_PRESETS = [30, 60, 90, 120, 180, 300];
+
+function RestTimerBar({
+  remaining,
+  running,
+  onStart,
+  onToggle,
+  onStop,
+}: {
+  remaining: number | null;
+  running: boolean;
+  onStart: (s: number) => void;
+  onToggle: () => void;
+  onStop: () => void;
+}) {
+  const idle = remaining === null;
+  const finished = remaining === 0;
+
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex items-center gap-3">
+        <span className="text-[11px] font-bold uppercase tracking-widest text-zinc-500">
+          Descanso
+        </span>
+        {idle ? (
+          <span className="text-xs text-zinc-600">
+            marcá una serie y arranca solo
+          </span>
+        ) : (
+          <>
+            <span
+              className={`font-mono text-2xl font-black tabular-nums ${
+                finished ? "text-emerald-300" : "text-white"
+              }`}
+            >
+              {formatTimerTime(remaining)}
+            </span>
+            <div className="flex items-center gap-1.5">
+              {finished ? (
+                <span className="rounded-lg bg-emerald-950 px-2 py-1 text-xs font-bold text-emerald-300">
+                  ¡Descanso listo!
+                </span>
+              ) : (
+                <>
+                  <Button
+                    variant="secondary"
+                    type="button"
+                    className="px-2.5 py-1 text-xs"
+                    onClick={onToggle}
+                  >
+                    {running ? "Pausa" : "Reanudar"}
+                  </Button>
+                  <Button
+                    variant="secondary"
+                    type="button"
+                    className="px-2.5 py-1 text-xs"
+                    onClick={() => onStart(remaining + 30)}
+                  >
+                    +30s
+                  </Button>
+                </>
+              )}
+              <button
+                onClick={onStop}
+                className="rounded-lg px-2 py-1 text-xs text-zinc-500 transition hover:text-red-400"
+                title="Detener cronómetro"
+              >
+                ✕
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="text-[11px] text-zinc-600">Rápido:</span>
+        {REST_PRESETS.map((s) => (
+          <button
+            key={s}
+            onClick={() => onStart(s)}
+            className={`rounded-lg border px-2.5 py-1 text-xs font-semibold transition hover:border-zinc-500 ${
+              remaining === s ? "border-white bg-white text-zinc-950" : "border-zinc-800 text-zinc-300"
+            }`}
+          >
+            {s >= 60 ? `${s / 60} min` : `${s}s`}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 function ExerciseCard({
   index,
   exercise,
@@ -227,6 +384,7 @@ function ExerciseCard({
   onRow,
   onAddRow,
   onRemoveRow,
+  onRestStart,
   comentario,
   onComentario,
 }: {
@@ -237,6 +395,7 @@ function ExerciseCard({
   onRow: (idx: number, patch: Partial<Row>) => void;
   onAddRow: () => void;
   onRemoveRow: (idx: number) => void;
+  onRestStart: () => void;
   comentario: string;
   onComentario: (v: string) => void;
 }) {
@@ -353,7 +512,10 @@ function ExerciseCard({
             <input
               type="checkbox"
               checked={r.done}
-              onChange={(e) => onRow(idx, { done: e.target.checked })}
+              onChange={(e) => {
+                onRow(idx, { done: e.target.checked });
+                if (e.target.checked) onRestStart();
+              }}
               className="h-4 w-4 accent-emerald-500"
             />
             <input

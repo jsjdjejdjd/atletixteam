@@ -1,5 +1,5 @@
 import { requireProfile } from "@/lib/auth";
-import { EmptyState } from "@/components/ui";
+import { EmptyState, LinkButton } from "@/components/ui";
 import { categoriaLabel } from "@/lib/levels";
 import { EnrollButton } from "./enroll-button";
 
@@ -26,7 +26,14 @@ export default async function ProgramasCatalogoPage() {
     .eq("activo", true)
     .order("nombre", { ascending: true });
 
+  const { data: mine } = await supabase
+    .from("programs")
+    .select("id, nombre, objetivo, descripcion, nivel, categoria, duracion_semanas")
+    .eq("created_by", user.id)
+    .order("created_at", { ascending: false });
+
   const list = (programs ?? []) as Program[];
+  const misProgramas = (mine ?? []) as Program[];
 
   let miProgramaId: string | null = null;
   const { data: athlete } = await supabase
@@ -53,19 +60,80 @@ export default async function ProgramasCatalogoPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <section>
-        <p className="text-sm font-medium text-zinc-500">Catálogo de entrenamiento</p>
-        <h1 className="mt-2 text-3xl font-black tracking-tight">Programas</h1>
-        <p className="mt-1 text-sm text-zinc-400">
-          Elegí el programa que más se ajuste a tu nivel y empezá cuando quieras.
-          Podés cambiarlo en cualquier momento.
-        </p>
+      <section className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-medium text-zinc-500">Catálogo de entrenamiento</p>
+          <h1 className="mt-2 text-3xl font-black tracking-tight">Programas</h1>
+          <p className="mt-1 text-sm text-zinc-400">
+            Elegí un programa ya armado por tu entrenador, o creá el tuyo propio con
+            los ejercicios de la biblioteca. Podés cambiar en cualquier momento.
+          </p>
+        </div>
+        <LinkButton href="/alumno/programas/nuevo" variant="primary">
+          + Crear mi programa
+        </LinkButton>
       </section>
+
+      {misProgramas.length > 0 ? (
+        <section className="flex flex-col gap-3">
+          <h2 className="text-sm font-bold tracking-[0.2em] text-zinc-500 uppercase">
+            Mis programas
+          </h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {misProgramas.map((p) => {
+              const esMio = p.id === miProgramaId;
+              return (
+                <div
+                  key={p.id}
+                  className={`flex flex-col rounded-2xl border p-6 ${
+                    esMio
+                      ? "border-emerald-800/70 bg-emerald-950/20"
+                      : "border-zinc-800 bg-zinc-900/40 hover:border-zinc-600"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="text-lg font-bold">{p.nombre}</h3>
+                    <span className="rounded-full bg-zinc-800 px-3 py-1 text-xs font-semibold text-zinc-300">
+                      Propio
+                    </span>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                    <span className="rounded-full bg-white px-3 py-1 font-bold text-zinc-950">
+                      {p.nivel ?? "—"}
+                    </span>
+                    <span className="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300">
+                      1 semana
+                    </span>
+                  </div>
+                  {p.objetivo ? (
+                    <p className="mt-3 text-sm text-zinc-400">{p.objetivo}</p>
+                  ) : null}
+                  <div className="mt-4 flex justify-end">
+                    <EnrollButton programId={p.id} isCurrent={esMio} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      ) : (
+        <section className="flex items-center justify-between gap-4 rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/20 p-6">
+          <div>
+            <h2 className="text-lg font-bold">Armalo a tu gusto</h2>
+            <p className="mt-1 text-sm text-zinc-400">
+              Elegí los días y los ejercicios de la biblioteca que más te sirvan.
+            </p>
+          </div>
+          <LinkButton href="/alumno/programas/nuevo" variant="primary">
+            + Crear mi programa
+          </LinkButton>
+        </section>
+      )}
 
       {grupos.length === 0 ? (
         <EmptyState
-          title="Todavía no hay programas disponibles"
-          description="Tu entrenador está cargando los programas. Volvé a entrar en un rato."
+          title="Todavía no hay programas de tu entrenador"
+          description="Mientras tanto podés crear tu propio programa con los ejercicios de la biblioteca."
         />
       ) : (
         <div className="flex flex-col gap-8">

@@ -18,7 +18,7 @@ export function EnrollButton({
   const [error, setError] = useState<string | null>(null);
 
   async function handleEnroll() {
-    if (!isCurrent) return;
+    if (isCurrent) return;
     setLoading(true);
     setError(null);
 
@@ -99,13 +99,13 @@ export function EnrollButton({
       <Button
         type="button"
         onClick={handleEnroll}
-        disabled={loading || !isCurrent}
+        disabled={loading || isCurrent}
       >
         {loading
           ? "Anotándote…"
           : isCurrent
-            ? "Empezar este programa"
-            : "Ya estás en este programa"}
+            ? "Ya estás en este programa"
+            : "Empezar este programa"}
       </Button>
       {error ? (
         <p className="mt-2 text-xs text-red-300">{error}</p>

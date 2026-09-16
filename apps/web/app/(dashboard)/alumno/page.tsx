@@ -96,10 +96,18 @@ export default async function AlumnoPage() {
         </section>
       ) : (
         <section className="rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/20 p-6">
-          <h2 className="text-lg font-bold">Aún no tenés programa asignado</h2>
+          <h2 className="text-lg font-bold">Aún no tenés programa</h2>
           <p className="mt-1 text-sm text-zinc-400">
-            Tu entrenador va a asignarte un plan de entrenamiento.
+            Elegí uno del catálogo o creá el tuyo con los ejercicios de la biblioteca.
           </p>
+          <div className="mt-4">
+            <a
+              href="/alumno/programas"
+              className="inline-flex rounded-lg bg-white px-5 py-2.5 text-sm font-bold text-zinc-950 transition hover:bg-zinc-200"
+            >
+              Ver programas y crear el mío →
+            </a>
+          </div>
         </section>
       )}
 

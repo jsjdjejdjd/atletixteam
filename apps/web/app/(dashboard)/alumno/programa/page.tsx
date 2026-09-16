@@ -160,13 +160,18 @@ export default async function ProgramaAlumnoPage() {
                       <li key={s.id}>
                         <Link
                           href={`/alumno/entrenamientos/${s.id}`}
-                          className="flex items-center justify-between rounded-xl border border-zinc-800 bg-zinc-950/50 px-4 py-3 transition hover:border-zinc-600"
+                          className="group flex flex-col gap-3 rounded-xl border border-emerald-900/60 bg-emerald-950/20 px-5 py-4 transition hover:border-emerald-600"
                         >
-                          <span className="font-semibold">
-                            {s.dia ? `Día ${s.dia} · ` : ""}
-                            {s.nombre}
+                          <span className="flex items-center justify-between gap-3">
+                            <span className="font-bold text-emerald-200">
+                              {s.dia ? `Día ${s.dia} · ` : ""}
+                              {s.nombre}
+                            </span>
+                            <span className="text-sm text-emerald-300">▶</span>
                           </span>
-                          <span className="text-xs text-zinc-500">Abrir →</span>
+                          <span className="inline-flex w-fit rounded-lg bg-white px-5 py-2.5 text-sm font-bold text-zinc-950 transition group-hover:bg-zinc-200">
+                            Empezar entrenamiento
+                          </span>
                         </Link>
                       </li>
                     ))
