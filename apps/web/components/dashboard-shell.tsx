@@ -22,6 +22,7 @@ const ATHLETE_LINKS: NavLink[] = [
   { href: "/alumno/programa", label: "Mi Programa" },
   { href: "/alumno/programas", label: "Programas" },
   { href: "/alumno/progreso", label: "Progreso" },
+  { href: "/alumno/carga", label: "Análisis de carga" },
   { href: "/alumno/chat", label: "Chat" },
 ];
 
