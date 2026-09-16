@@ -1,4 +1,4 @@
-const CACHE = "atletix-v1";
+const CACHE = "atletix-v2";
 
 self.addEventListener("install", () => {
   self.skipWaiting();

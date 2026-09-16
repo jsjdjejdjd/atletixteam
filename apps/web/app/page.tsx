@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { PRODUCTOS, linkWhatsApp } from "@/lib/supplements";
+import { ProductCard } from "@/components/supplements/product-card";
 
 function Logo() {
   return (
@@ -22,21 +24,21 @@ const niveles = [
   { t: "Élite", elite: true },
 ];
 
-const categorias = [
+const programas = [
   {
-    nombre: "Calistenia General",
-    desc: "Dominadas, fondos y core. La base de todo cuerpo fuerte.",
-    puntos: ["Bloques de fuerza con RIR y descargas", "Seguimiento de PR en dominadas y fondos"],
+    nombre: "Arrancá desde cero",
+    desc: "Del sillón a moverte con confianza. Hábito primero, fuerza después.",
+    puntos: ["Rutinas cortas y sin frustración", "Arrancás sin equipamiento"],
   },
   {
-    nombre: "Planche",
-    desc: "Del tuck al planche completo. Progresión real, sin atajos.",
-    puntos: ["Escalera técnica: tuck, one leg, full", "Sostén y control medibles"],
+    nombre: "Rendimiento",
+    desc: "Planes serios para mejorar tu rendimiento y verlo en los números.",
+    puntos: ["Fuerza con tu cuerpo y con cargas", "RIR, descargas y seguimiento"],
   },
   {
-    nombre: "Front Lever",
-    desc: "Control total en suspensión. Paso a paso hasta el full.",
-    puntos: ["Del tuck al full, paso a paso", "Fuerza de tirón específica"],
+    nombre: "Nivel competitivo",
+    desc: "Ruta de atleta: entrená con propósito de competir y rendir.",
+    puntos: ["Street lifting y rutas de competencia", "Bloques, picos y descargas"],
   },
 ];
 
@@ -74,6 +76,7 @@ export default function Home() {
           <nav className="hidden items-center gap-6 text-sm font-medium text-zinc-400 md:flex">
             <a href="#metodo" className="transition hover:text-white">Método</a>
             <a href="#categorias" className="transition hover:text-white">Programas</a>
+            <a href="#suplementos" className="transition hover:text-white">Suplementos</a>
             <a href="#para-quien" className="transition hover:text-white">Para quién</a>
             <a href="#contacto" className="transition hover:text-white">Contacto</a>
           </nav>
@@ -157,11 +160,11 @@ export default function Home() {
           <div className="mx-auto w-full max-w-6xl px-6">
             <SectionTitle
               kicker="Programas"
-              title="Elegí tu camino, cada uno con su progresión"
-              sub="Cuatro niveles. Elegí dónde empezás."
+              title="Programas para cada etapa"
+              sub="Del sedentario al atleta: elegí tu punto de partida, el plan se adapta."
             />
             <div className="mt-12 grid grid-cols-1 gap-4 lg:grid-cols-3">
-              {categorias.map((c) => (
+              {programas.map((c) => (
                 <div key={c.nombre} className="flex flex-col rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6">
                   <p className="text-sm font-black tracking-[0.2em] text-zinc-500 uppercase">
                     Calistenia
@@ -192,6 +195,35 @@ export default function Home() {
                   </ul>
                 </div>
               ))}
+            </div>
+          </div>
+        </section>
+
+        {/* ===== Suplementos ===== */}
+        <section id="suplementos" className="border-t border-zinc-900 py-20">
+          <div className="mx-auto w-full max-w-6xl px-6">
+            <SectionTitle
+              kicker="Tienda"
+              title="Suplementos"
+              sub="Star Nutrition original. Entrená fuerte, recuperá mejor."
+            />
+            <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {PRODUCTOS.map((p) => (
+                <ProductCard key={p.id} producto={p} />
+              ))}
+            </div>
+            <div className="mt-12 flex flex-col items-center gap-4 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-8 text-center sm:flex-row sm:justify-between sm:text-left">
+              <p className="font-bold text-zinc-200">
+                ¿No sabés cuál te sirve? Escribime y te asesoro.
+              </p>
+              <a
+                href={linkWhatsApp()}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="shrink-0 rounded-full bg-white px-6 py-3 text-sm font-bold text-zinc-950 transition hover:bg-zinc-200"
+              >
+                Consultar por WhatsApp
+              </a>
             </div>
           </div>
         </section>
