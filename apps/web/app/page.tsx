@@ -99,24 +99,24 @@ export default function Home() {
 
       <main className="flex-1">
         {/* ===== Hero ===== */}
-        <section className="mx-auto w-full max-w-6xl px-6 pt-20 pb-16 text-center sm:pt-28">
-          <p className="mb-6 inline-flex items-center gap-2 rounded-full border border-zinc-800 px-4 py-1.5 text-xs font-semibold tracking-[0.25em] text-zinc-400 uppercase">
+        <section className="mx-auto w-full max-w-6xl px-5 pt-24 pb-20 text-center sm:px-6 sm:pt-28">
+          <p className="mb-8 inline-flex items-center gap-2 rounded-full border border-zinc-800 px-5 py-2 text-xs font-semibold tracking-[0.25em] text-zinc-400 uppercase">
             ATLETIX TRAINING SYSTEM
           </p>
-          <h1 className="mx-auto max-w-4xl text-5xl font-black tracking-tight text-balance sm:text-7xl">
+          <h1 className="mx-auto max-w-4xl text-[2.6rem] leading-[1.05] font-black tracking-tight text-balance sm:text-7xl sm:leading-tight">
             ENTRENÁ CON <span className="text-zinc-500">PROPÓSITO</span>.
           </h1>
-          <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-zinc-300">
+          <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-pretty text-zinc-300 sm:mt-8">
             No se trata solamente de entrenar más.
             <br />
             Se trata de <span className="font-bold text-white">entrenar mejor</span>.
           </p>
-          <p className="mx-auto mt-4 max-w-2xl text-zinc-400">
+          <p className="mx-auto mt-5 max-w-2xl text-pretty text-zinc-400">
             Planificación personalizada, seguimiento de tu rendimiento y progresiones
             diseñadas para que puedas avanzar de forma estructurada hacia tu
             próximo nivel.
           </p>
-          <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <div className="mt-12 flex flex-col items-center justify-center gap-3 sm:mt-14 sm:flex-row sm:gap-4">
             <Link
               href="/register"
               className="w-full rounded-full bg-white px-8 py-4 text-base font-bold text-zinc-950 transition hover:bg-zinc-200 sm:w-auto"
@@ -131,24 +131,24 @@ export default function Home() {
             </Link>
           </div>
 
-          <p className="mx-auto mt-16 text-xs font-bold tracking-[0.3em] text-zinc-500 uppercase">
+          <p className="mx-auto mt-20 text-xs font-bold tracking-[0.3em] text-zinc-500 uppercase">
             PLANIFICÁ. ENTRENÁ. MEDÍ. EVOLUCIONÁ.
           </p>
         </section>
 
         {/* ===== Método ===== */}
-        <section id="metodo" className="border-t border-zinc-900 py-20">
+        <section id="metodo" className="border-t border-zinc-900 py-16 sm:py-20">
           <div className="mx-auto w-full max-w-6xl px-6">
             <SectionTitle
               kicker="Cómo funciona"
               title="Cuatro pasos para transformar tu cuerpo"
             />
-            <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
               {pasos.map((p) => (
-                <div key={p.n} className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6">
+                <div key={p.n} className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-7 sm:p-8">
                   <p className="text-3xl font-black text-zinc-700">{p.n}</p>
-                  <p className="mt-4 font-bold">{p.t}</p>
-                  <p className="mt-2 text-sm leading-relaxed text-zinc-400">{p.d}</p>
+                  <p className="mt-5 font-bold">{p.t}</p>
+                  <p className="mt-3 text-[15px] leading-relaxed text-zinc-400">{p.d}</p>
                 </div>
               ))}
             </div>
@@ -156,38 +156,38 @@ export default function Home() {
         </section>
 
         {/* ===== Categorías ===== */}
-        <section id="categorias" className="border-t border-zinc-900 py-20">
+        <section id="categorias" className="border-t border-zinc-900 py-16 sm:py-20">
           <div className="mx-auto w-full max-w-6xl px-6">
             <SectionTitle
               kicker="Programas"
               title="Programas para cada etapa"
               sub="Del sedentario al atleta: elegí tu punto de partida, el plan se adapta."
             />
-            <div className="mt-12 grid grid-cols-1 gap-4 lg:grid-cols-3">
+            <div className="mt-12 grid grid-cols-1 gap-5 lg:grid-cols-3 lg:gap-6">
               {programas.map((c) => (
-                <div key={c.nombre} className="flex flex-col rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6">
+                <div key={c.nombre} className="flex flex-col rounded-2xl border border-zinc-800 bg-zinc-900/40 p-7 sm:p-8">
                   <p className="text-sm font-black tracking-[0.2em] text-zinc-500 uppercase">
                     Calistenia
                   </p>
-                  <h3 className="mt-2 text-xl font-extrabold">{c.nombre}</h3>
-                  <p className="mt-2 text-sm leading-relaxed text-zinc-400">{c.desc}</p>
-                  <div className="mt-4 flex flex-wrap gap-1.5">
+                  <h3 className="mt-3 text-xl font-extrabold">{c.nombre}</h3>
+                  <p className="mt-3 text-[15px] leading-relaxed text-zinc-400">{c.desc}</p>
+                  <div className="mt-5 flex flex-wrap gap-2">
                     {niveles.map((n) => (
                       <span
                         key={n.t}
                         className={
                           n.elite
-                            ? "rounded-full border border-emerald-400/40 bg-emerald-400/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-300"
-                            : "rounded-full border border-zinc-700 bg-zinc-900 px-2.5 py-1 text-[11px] font-semibold text-zinc-300"
+                            ? "rounded-full border border-emerald-400/40 bg-emerald-400/10 px-3 py-1.5 text-xs font-semibold text-emerald-300"
+                            : "rounded-full border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-xs font-semibold text-zinc-300"
                         }
                       >
                         {n.t}
                       </span>
                     ))}
                   </div>
-                  <ul className="mt-5 flex flex-col gap-2">
+                  <ul className="mt-6 flex flex-col gap-3">
                     {c.puntos.map((pt) => (
-                      <li key={pt} className="flex items-start gap-2 text-sm text-zinc-300">
+                      <li key={pt} className="flex items-start gap-2.5 text-[15px] leading-relaxed text-zinc-300">
                         <span className="mt-0.5 text-emerald-400">✓</span>
                         {pt}
                       </li>
@@ -200,14 +200,14 @@ export default function Home() {
         </section>
 
         {/* ===== Suplementos ===== */}
-        <section id="suplementos" className="border-t border-zinc-900 py-20">
+        <section id="suplementos" className="border-t border-zinc-900 py-16 sm:py-20">
           <div className="mx-auto w-full max-w-6xl px-6">
             <SectionTitle
               kicker="Tienda"
               title="Suplementos"
               sub="Star Nutrition original. Entrená fuerte, recuperá mejor."
             />
-            <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
               {PRODUCTOS.map((p) => (
                 <ProductCard key={p.id} producto={p} />
               ))}
@@ -229,17 +229,17 @@ export default function Home() {
         </section>
 
         {/* ===== Para quién ===== */}
-        <section id="para-quien" className="border-t border-zinc-900 py-20">
+        <section id="para-quien" className="border-t border-zinc-900 py-16 sm:py-20">
           <div className="mx-auto w-full max-w-6xl px-6">
             <SectionTitle
               kicker="Para quién"
               title="Todo lo que hace profesional tu entrenamiento"
             />
-            <div className="mt-12 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
               {features.map((f) => (
-                <div key={f.t} className="rounded-2xl border border-zinc-800/80 bg-zinc-900/40 p-6">
+                <div key={f.t} className="rounded-2xl border border-zinc-800/80 bg-zinc-900/40 p-7 sm:p-8">
                   <p className="font-bold">{f.t}</p>
-                  <p className="mt-2 text-sm leading-relaxed text-zinc-400">{f.d}</p>
+                  <p className="mt-3 text-[15px] leading-relaxed text-zinc-400">{f.d}</p>
                 </div>
               ))}
             </div>
@@ -247,7 +247,7 @@ export default function Home() {
         </section>
 
         {/* ===== FAQ ===== */}
-        <section className="border-t border-zinc-900 py-20">
+        <section className="border-t border-zinc-900 py-16 sm:py-20">
           <div className="mx-auto w-full max-w-3xl px-6">
             <SectionTitle kicker="Preguntas frecuentes" title="Dudas que nos llegan seguido" />
             <div className="mt-10 flex flex-col gap-3">
@@ -280,10 +280,10 @@ export default function Home() {
         </section>
 
         {/* ===== Cierre ===== */}
-        <section className="border-t border-zinc-900 py-20">
+        <section className="border-t border-zinc-900 py-16 sm:py-20">
           <div className="mx-auto w-full max-w-6xl px-6">
-            <div className="rounded-3xl border border-zinc-800 bg-zinc-900/60 p-10 text-center sm:p-16">
-              <h2 className="text-3xl font-black tracking-tight text-balance sm:text-5xl">
+            <div className="rounded-3xl border border-zinc-800 bg-zinc-900/60 p-8 text-center sm:p-16">
+              <h2 className="text-[2.1rem] leading-tight font-black tracking-tight text-balance sm:text-5xl">
                 Los fuertes no nacen, <span className="text-zinc-500">se entrenan</span>
               </h2>
               <p className="mx-auto mt-4 max-w-xl text-zinc-400">

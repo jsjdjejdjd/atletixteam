@@ -33,18 +33,18 @@ export function ProductCard({ producto }: { producto: Producto }) {
         )}
       </div>
 
-      <div className="flex flex-1 flex-col p-5">
+      <div className="flex flex-1 flex-col p-6">
         <p className="text-xs font-bold tracking-widest text-emerald-400 uppercase">
           {producto.marca}
         </p>
-        <h3 className="mt-1 font-bold">{producto.nombre}</h3>
-        <p className="mt-1 text-sm leading-relaxed text-zinc-400">{producto.descripcion}</p>
-        <p className="mt-3 text-lg font-black">{formatearPrecio(producto.precio)}</p>
+        <h3 className="mt-2 font-bold">{producto.nombre}</h3>
+        <p className="mt-2 text-[15px] leading-relaxed text-zinc-400">{producto.descripcion}</p>
+        <p className="mt-4 text-lg font-black">{formatearPrecio(producto.precio)}</p>
         <a
           href={linkWhatsApp(producto.nombre)}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-4 block w-full rounded-full bg-white px-4 py-2.5 text-center text-sm font-bold text-zinc-950 transition hover:bg-zinc-200"
+          className="mt-5 block w-full rounded-full bg-white px-4 py-3 text-center text-sm font-bold text-zinc-950 transition hover:bg-zinc-200"
         >
           Pedir por WhatsApp
         </a>
