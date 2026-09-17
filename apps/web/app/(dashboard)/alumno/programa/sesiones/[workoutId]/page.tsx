@@ -40,6 +40,7 @@ export default async function EditarSesionPage({
       .from("workout_exercises")
       .select("id, exercise_id, orden, series, repeticiones, descanso_segundos")
       .eq("workout_id", workoutId)
+      .is("athlete_id", null)
       .order("orden", { ascending: true }),
     supabase
       .from("exercises")

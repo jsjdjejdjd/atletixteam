@@ -16,6 +16,7 @@ type Serie = {
 type Exercise = {
   id: string;
   exercise_id: string | null;
+  athlete_id: string | null;
   orden: number;
   name: string;
   target: {
@@ -178,6 +179,7 @@ export function LiveWorkout({
       .insert({
         workout_id: workoutId,
         exercise_id: lib.id,
+        athlete_id: athleteId,
         orden: nextOrden,
         series: 3,
         descanso_segundos: 90,
@@ -191,6 +193,7 @@ export function LiveWorkout({
     const nuevo: Exercise = {
       id: creado.id,
       exercise_id: lib.id,
+      athlete_id: athleteId,
       orden: nextOrden,
       name: lib.nombre,
       target: {
@@ -227,20 +230,37 @@ export function LiveWorkout({
     setPickerOpen(false);
   }
 
-  async function removeExercise(id: string) {
+  async function removeExercise(exercise: Exercise) {
     setError(null);
-    const { error: delErr } = await supabase
-      .from("workout_exercises")
-      .delete()
-      .eq("id", id);
-    if (delErr) {
-      setError(delErr.message);
-      return;
+    if (exercise.athlete_id === athleteId) {
+      const { error: delErr } = await supabase
+        .from("workout_exercises")
+        .delete()
+        .eq("id", exercise.id);
+      if (delErr) {
+        setError(delErr.message);
+        return;
+      }
+    } else {
+      const { error: ovErr } = await supabase
+        .from("workout_exercise_overrides")
+        .upsert(
+          {
+            athlete_id: athleteId,
+            workout_exercise_id: exercise.id,
+            oculto: true,
+          },
+          { onConflict: "athlete_id,workout_exercise_id" }
+        );
+      if (ovErr) {
+        setError(ovErr.message);
+        return;
+      }
     }
-    setItems((prev) => prev.filter((i) => i.id !== id));
+    setItems((prev) => prev.filter((i) => i.id !== exercise.id));
     setData((prev) => {
       const copy = { ...prev };
-      delete copy[id];
+      delete copy[exercise.id];
       return copy;
     });
   }
@@ -257,10 +277,21 @@ export function LiveWorkout({
     setItems(conOrden);
     await Promise.all(
       conOrden.map((it) =>
-        supabase
-          .from("workout_exercises")
-          .update({ orden: it.orden })
-          .eq("id", it.id)
+        it.athlete_id === athleteId
+          ? supabase
+              .from("workout_exercises")
+              .update({ orden: it.orden })
+              .eq("id", it.id)
+          : supabase
+              .from("workout_exercise_overrides")
+              .upsert(
+                {
+                  athlete_id: athleteId,
+                  workout_exercise_id: it.id,
+                  orden: it.orden,
+                },
+                { onConflict: "athlete_id,workout_exercise_id" }
+              )
       )
     );
   }
@@ -359,8 +390,9 @@ export function LiveWorkout({
         <div className="flex flex-col gap-3 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <p className="text-sm text-zinc-400">
-              Podés ajustar la rutina mientras entrenás: reordená con ↑ ↓, quitá
-              o agregá ejercicios.
+              Ajustá tu rutina mientras entrenás (los cambios son solo para
+              vos): reordená con ↑ ↓, quitá o agregá ejercicios de la
+              biblioteca.
             </p>
             <Button
               type="button"
@@ -446,7 +478,7 @@ export function LiveWorkout({
                 total={items.length}
                 onMoveUp={() => moveExercise(i, -1)}
                 onMoveDown={() => moveExercise(i, 1)}
-                onRemove={() => removeExercise(ex.id)}
+                onRemove={() => removeExercise(ex)}
               />
             );
           })}

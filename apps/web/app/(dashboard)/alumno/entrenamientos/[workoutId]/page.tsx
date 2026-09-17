@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
-import { esProgramaPlanificable } from "@/lib/levels";
 import { LiveWorkout } from "./live-workout";
 
 export const dynamic = "force-dynamic";
 
 type We = {
   id: string;
+  athlete_id: string | null;
   exercise_id: string | null;
   orden: number;
   series: number | null;
@@ -36,7 +36,7 @@ export default async function EntrenamientoAlumnoPage({
   params: Promise<{ workoutId: string }>;
 }) {
   const { workoutId } = await params;
-  const { supabase, user, profile } = await requireProfile();
+  const { supabase, user } = await requireProfile();
 
   const hoy = new Date().toISOString().slice(0, 10);
 
@@ -62,47 +62,37 @@ export default async function EntrenamientoAlumnoPage({
     return <p className="text-zinc-500">Entrenamiento no encontrado.</p>;
   }
 
-  let canEdit = profile.rol === "admin";
-  if (!canEdit) {
-    const { data: week } = await supabase
-      .from("weeks")
-      .select("program_id")
-      .eq("id", workout.week_id)
-      .maybeSingle();
-    if (week) {
-      const { data: program } = await supabase
-        .from("programs")
-        .select("nombre")
-        .eq("id", week.program_id)
-        .maybeSingle();
-      canEdit = esProgramaPlanificable(program?.nombre ?? null);
-    }
-  }
-
   const raw = (weRes.data ?? []) as We[];
-  if (raw.length === 0 && !canEdit) {
-    return (
-      <div className="flex flex-col gap-8">
-        <section>
-          <div className="flex items-center gap-2 text-sm text-zinc-500">
-            <Link href="/alumno/programa" className="hover:text-zinc-300">
-              Programa
-            </Link>
-            <span>/</span>
-            <span className="text-zinc-300">{workout.nombre}</span>
-          </div>
-          <h1 className="mt-2 text-3xl font-black tracking-tight">
-            {workout.nombre}
-          </h1>
-        </section>
-        <p className="text-zinc-500">
-          Tu entrenador todavía no cargó los ejercicios de esta sesión.
-        </p>
-      </div>
-    );
-  }
+  const baseIds = raw.filter((w) => !w.athlete_id).map((w) => w.id);
 
-  const ids = raw.map((w) => w.id);
+  const { data: overridesData } = baseIds.length
+    ? await supabase
+        .from("workout_exercise_overrides")
+        .select("workout_exercise_id, oculto, orden")
+        .eq("athlete_id", user.id)
+        .in("workout_exercise_id", baseIds)
+    : {
+        data: [] as {
+          workout_exercise_id: string;
+          oculto: boolean;
+          orden: number | null;
+        }[],
+      };
+
+  const overrideMap = new Map(
+    (overridesData ?? []).map((o) => [o.workout_exercise_id, o])
+  );
+
+  const items = raw
+    .filter((w) => !overrideMap.get(w.id)?.oculto)
+    .sort((a, b) => {
+      const oa = overrideMap.get(a.id)?.orden ?? a.orden;
+      const ob = overrideMap.get(b.id)?.orden ?? b.orden;
+      if (oa !== ob) return oa - ob;
+      return a.orden - b.orden;
+    });
+
+  const ids = items.map((w) => w.id);
   const lib = new Map(
     (libRes.data ?? []).map(
       (l: { id: string }) => [l.id, l] as const
@@ -139,13 +129,14 @@ export default async function EntrenamientoAlumnoPage({
     }
   }
 
-  const exercises = raw.map((w) => {
+  const exercises = items.map((w) => {
     const info = w.exercise_id ? lib.get(w.exercise_id) : null;
     const log = logMap.get(w.id);
     const path = videoMap.get(w.id);
     return {
       id: w.id,
       exercise_id: w.exercise_id,
+      athlete_id: w.athlete_id,
       orden: w.orden,
       name: (info as { nombre?: string } | null)?.nombre ?? "Sin nombre",
       target: {
@@ -198,7 +189,7 @@ export default async function EntrenamientoAlumnoPage({
         workoutName={workout.nombre}
         athleteId={user.id}
         exercises={exercises}
-        canEdit={canEdit}
+        canEdit
         library={
           (libRes.data ?? []) as {
             id: string;

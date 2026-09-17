@@ -39,6 +39,7 @@ export default async function EntrenamientoPage({
       .from("workout_exercises")
       .select("*")
       .eq("workout_id", workoutId)
+      .is("athlete_id", null)
       .order("orden", { ascending: true }),
     supabase
       .from("exercises")
