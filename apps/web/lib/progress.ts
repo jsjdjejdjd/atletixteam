@@ -108,6 +108,19 @@ export function bestWeightSeries(logs: { fecha: string; series_data: SerieRaw[] 
   };
 }
 
+export function sessionResumen(
+  logs: { fecha: string; series_data: SerieRaw[] }[]
+) {
+  const byDate = aggregate(logs);
+  const rows = [...byDate.entries()].map(([fecha, series]) => ({
+    fecha,
+    reps: best(series, (s) => parseNumber(s.reps)),
+    peso: best(series, (s) => parseWeight(s.peso)),
+  }));
+  rows.sort((a, b) => b.fecha.localeCompare(a.fecha));
+  return rows;
+}
+
 function aggregate(logs: { fecha: string; series_data: SerieRaw[] }[]) {
   const byDate = new Map<string, SerieRaw[]>();
   for (const log of logs) {

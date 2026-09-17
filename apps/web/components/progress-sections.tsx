@@ -8,6 +8,7 @@ import {
   testSeries,
   bestRepsSeries,
   bestWeightSeries,
+  sessionResumen,
   type ProgressRow,
   type SerieRaw,
 } from "@/lib/progress";
@@ -176,6 +177,41 @@ export async function ProgressSections({ athleteId }: { athleteId: string }) {
                         value: ex.weight.values[i],
                       }))}
                     />
+                  </div>
+                ) : null}
+                {ex.logs.length > 0 ? (
+                  <div className="mt-3 border-t border-zinc-800 pt-3">
+                    <p className="mb-1 text-xs font-semibold tracking-widest text-zinc-500 uppercase">
+                      Últimas sesiones
+                    </p>
+                    <ul className="flex flex-col">
+                      {sessionResumen(ex.logs)
+                        .slice(0, 8)
+                        .map((s) => (
+                          <li
+                            key={s.fecha}
+                            className="flex items-center justify-between border-b border-zinc-900 py-1.5 text-sm last:border-0"
+                          >
+                            <span className="text-zinc-500">
+                              {s.fecha.slice(5)}
+                            </span>
+                            <span className="flex items-center gap-4">
+                              <span className="text-zinc-300">
+                                {s.reps != null ? `${s.reps} reps` : "—"}
+                              </span>
+                              <span
+                                className={
+                                  s.peso != null
+                                    ? "font-semibold text-zinc-100"
+                                    : "text-zinc-600"
+                                }
+                              >
+                                {s.peso != null ? `${s.peso} kg` : "sin kg"}
+                              </span>
+                            </span>
+                          </li>
+                        ))}
+                    </ul>
                   </div>
                 ) : null}
               </div>
