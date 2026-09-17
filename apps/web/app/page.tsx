@@ -47,6 +47,16 @@ const programas = [
     puntos: ["Fuerza con tu cuerpo y con cargas", "RIR, descargas y seguimiento"],
   },
   {
+    nombre: "Musculación / Gimnasio",
+    kicker: "Gimnasio",
+    desc: "¿Ya vas al gimnasio pero entrenás sin una guía clara? Te armamos la planificación para que cada semana sumes de verdad.",
+    puntos: [
+      "Rutinas por objetivo: fuerza, volumen o ambas",
+      "Cargas, series y RIR planificados para vos",
+      "Seguimiento y ajustes según tu evolución",
+    ],
+  },
+  {
     nombre: "Nivel competitivo",
     kicker: "Calistenia",
     desc: "Ruta de atleta: entrená con propósito de competir y rendir.",
@@ -175,7 +185,7 @@ export default function Home() {
               title="Programas para cada etapa"
               sub="Del sedentario al atleta: elegí tu punto de partida, el plan se adapta."
             />
-            <div className="mt-12 grid grid-cols-1 gap-5 lg:grid-cols-3 lg:gap-6">
+            <div className="mt-12 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:gap-6">
               {programas.map((c) => (
                 <div key={c.nombre} className="flex flex-col rounded-2xl border border-zinc-800 bg-zinc-900/40 p-7 sm:p-8">
                   <p className="text-sm font-black tracking-[0.2em] text-zinc-500 uppercase">
