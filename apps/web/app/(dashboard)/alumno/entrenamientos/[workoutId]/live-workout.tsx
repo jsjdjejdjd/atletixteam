@@ -285,7 +285,7 @@ export function LiveWorkout({
   );
 }
 
-const REST_PRESETS = [30, 60, 90, 120, 180, 300];
+const REST_PRESETS_MIN = [1, 2, 3, 5];
 
 function RestTimerBar({
   remaining,
@@ -341,9 +341,9 @@ function RestTimerBar({
                     variant="secondary"
                     type="button"
                     className="px-2.5 py-1 text-xs"
-                    onClick={() => onStart(remaining + 30)}
+                    onClick={() => onStart(remaining + 60)}
                   >
-                    +30s
+                    +1 min
                   </Button>
                 </>
               )}
@@ -360,15 +360,15 @@ function RestTimerBar({
       </div>
       <div className="flex flex-wrap items-center gap-1.5">
         <span className="text-[11px] text-zinc-600">Rápido:</span>
-        {REST_PRESETS.map((s) => (
+        {REST_PRESETS_MIN.map((m) => (
           <button
-            key={s}
-            onClick={() => onStart(s)}
+            key={m}
+            onClick={() => onStart(m * 60)}
             className={`rounded-lg border px-2.5 py-1 text-xs font-semibold transition hover:border-zinc-500 ${
-              remaining === s ? "border-white bg-white text-zinc-950" : "border-zinc-800 text-zinc-300"
+              remaining === m * 60 ? "border-white bg-white text-zinc-950" : "border-zinc-800 text-zinc-300"
             }`}
           >
-            {s >= 60 ? `${s / 60} min` : `${s}s`}
+            {m} min
           </button>
         ))}
       </div>
@@ -493,17 +493,17 @@ function ExerciseCard({
       ) : null}
 
       <div className="mt-4 flex flex-col gap-2">
-        <div className="grid grid-cols-[2rem_1fr_5rem_4rem_3rem] items-center gap-2 rounded-t-xl border border-zinc-800 bg-zinc-950/60 px-3 py-2 text-xs font-semibold text-zinc-500">
+        <div className="grid grid-cols-[2rem_minmax(6rem,1.6fr)_4.5rem_3.5rem_3.5rem] items-center gap-2 rounded-t-xl border border-zinc-800 bg-zinc-950/60 px-3 py-2 text-xs font-semibold text-zinc-500">
           <span>✓</span>
           <span>Reps / Tiempo</span>
           <span>Peso</span>
           <span>RIR</span>
-          <span className="text-right">Desc.(s)</span>
+          <span className="text-right">Desc. (min)</span>
         </div>
         {rows.map((r, idx) => (
           <div
             key={idx}
-            className={`grid grid-cols-[2rem_1fr_5rem_4rem_3rem] items-center gap-2 rounded-xl border px-3 py-2 ${
+            className={`grid grid-cols-[2rem_minmax(6rem,1.6fr)_4.5rem_3.5rem_3.5rem] items-center gap-2 rounded-xl border px-3 py-2 ${
               r.done
                 ? "border-emerald-800/70 bg-emerald-950/30"
                 : "border-zinc-800 bg-zinc-950/40"
@@ -522,7 +522,7 @@ function ExerciseCard({
               value={r.reps}
               onChange={(e) => onRow(idx, { reps: e.target.value })}
               placeholder={t.repeticiones || "—"}
-              className="w-full rounded-md border border-zinc-800 bg-zinc-950 px-2 py-1.5 text-sm text-zinc-100 outline-none focus:border-zinc-500"
+              className="w-full rounded-md border border-zinc-800 bg-zinc-950 px-2 py-2.5 text-base text-zinc-100 outline-none focus:border-zinc-500"
             />
             <div className="flex items-center gap-1">
               <input
@@ -542,10 +542,12 @@ function ExerciseCard({
             <div className="flex items-center justify-end gap-1">
               <input
                 type="number"
+                step="0.5"
+                min="0"
                 value={r.descanso}
                 onChange={(e) => onRow(idx, { descanso: e.target.value })}
-                placeholder="180"
-                className="w-12 rounded-md border border-zinc-800 bg-zinc-950 px-2 py-1.5 text-sm text-zinc-100 outline-none focus:border-zinc-500"
+                placeholder="2"
+                className="w-14 rounded-md border border-zinc-800 bg-zinc-950 px-2 py-1.5 text-sm text-zinc-100 outline-none focus:border-zinc-500"
               />
               <button
                 onClick={() => onRemoveRow(idx)}

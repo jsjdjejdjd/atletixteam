@@ -1,7 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { EmptyState, SectionCard, Select } from "@/components/ui";
+import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
+import { Button, EmptyState, SectionCard, Select } from "@/components/ui";
 
 type Exercise = {
   id: string;
@@ -19,9 +21,18 @@ export default function EjerciciosBrowser({
 }: {
   exercises: Exercise[];
 }) {
+  const router = useRouter();
+  const supabase = createClient();
+
   const [categoria, setCategoria] = useState(ALL);
   const [dificultad, setDificultad] = useState(ALL);
   const [tipo, setTipo] = useState(ALL);
+
+  const [editing, setEditing] = useState<Exercise | null>(null);
+  const [editNombre, setEditNombre] = useState("");
+  const [editVideo, setEditVideo] = useState("");
+  const [editSaving, setEditSaving] = useState(false);
+  const [editError, setEditError] = useState<string | null>(null);
 
   const categorias = useMemo(
     () => Array.from(new Set(exercises.map((e) => e.categoria))).sort(),
@@ -47,6 +58,38 @@ export default function EjerciciosBrowser({
         (tipo === ALL || e.tipo === tipo)
     );
   }, [exercises, categoria, dificultad, tipo]);
+
+  function openEdit(ex: Exercise) {
+    setEditing(ex);
+    setEditNombre(ex.nombre);
+    setEditVideo(ex.video_url ?? "");
+    setEditError(null);
+  }
+
+  async function saveEdit() {
+    if (!editing) return;
+    setEditError(null);
+    if (!editNombre.trim()) {
+      setEditError("El nombre no puede quedar vacío.");
+      return;
+    }
+    setEditSaving(true);
+    const { error } = await supabase
+      .from("exercises")
+      .update({
+        nombre: editNombre.trim(),
+        video_url: editVideo.trim() || null,
+      })
+      .eq("id", editing.id);
+    if (error) {
+      setEditError(error.message);
+      setEditSaving(false);
+      return;
+    }
+    setEditSaving(false);
+    setEditing(null);
+    router.refresh();
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -131,12 +174,79 @@ export default function EjerciciosBrowser({
                       ▶ Video
                     </a>
                   ) : null}
+                  <button
+                    onClick={() => openEdit(ex)}
+                    className="rounded-full border border-zinc-800 px-3 py-1 text-zinc-400 transition hover:border-zinc-600 hover:text-white"
+                  >
+                    ✎ Editar
+                  </button>
                 </div>
               </li>
             ))}
           </ul>
         </SectionCard>
       )}
+
+      {editing ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+          <div className="flex w-full max-w-md flex-col gap-5 rounded-2xl border border-zinc-800 bg-zinc-950 p-6">
+            <div>
+              <p className="text-sm font-medium text-zinc-500">Biblioteca</p>
+              <h3 className="mt-1 text-xl font-bold">Editar ejercicio</h3>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="edit-nombre" className="text-sm font-medium text-zinc-300">
+                Nombre *
+              </label>
+              <input
+                id="edit-nombre"
+                value={editNombre}
+                onChange={(e) => setEditNombre(e.target.value)}
+                className="rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-2.5 text-sm text-zinc-100 placeholder-zinc-600 outline-none transition focus:border-zinc-500"
+                placeholder="Ej: Dominadas lastradas"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label htmlFor="edit-video" className="text-sm font-medium text-zinc-300">
+                URL del video demostrativo
+              </label>
+              <input
+                id="edit-video"
+                type="url"
+                value={editVideo}
+                onChange={(e) => setEditVideo(e.target.value)}
+                className="rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-2.5 text-sm text-zinc-100 placeholder-zinc-600 outline-none transition focus:border-zinc-500"
+                placeholder="https://..."
+              />
+              <p className="text-xs text-zinc-600">
+                Dejalo vacío para quitar el video.
+              </p>
+            </div>
+
+            {editError && (
+              <p className="rounded-lg border border-red-900/60 bg-red-950/40 px-4 py-3 text-sm text-red-300">
+                {editError}
+              </p>
+            )}
+
+            <div className="flex justify-end gap-3">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setEditing(null)}
+                disabled={editSaving}
+              >
+                Cancelar
+              </Button>
+              <Button type="button" onClick={saveEdit} disabled={editSaving}>
+                {editSaving ? "Guardando…" : "Guardar"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
