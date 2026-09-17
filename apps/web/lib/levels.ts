@@ -21,6 +21,26 @@ export const FAMILIA_ASESORIAS: Record<
 
 export const PROGRAMA_PLANCHE_NOMBRE = "Planche / Front Lever";
 
+export function esProgramaPlanificable(nombre: string | null): boolean {
+  if (nombre === PROGRAMA_PLANCHE_NOMBRE) return true;
+  return Object.prototype.hasOwnProperty.call(FAMILIA_ASESORIAS, nombre ?? "");
+}
+
+export function labelSesion(dia: number | null, nombre: string | null): string {
+  const n = (nombre ?? "").trim();
+  if (dia == null) return n || "Sesión";
+  const base = `Día ${dia}`;
+  if (!n) return base;
+  const norm = n
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+  if (norm === `dia ${dia}`) return base;
+  return `${base} · ${n}`;
+}
+
 export const EJERCICIO_CATEGORIAS = [
   "Tirón",
   "Empuje",

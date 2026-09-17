@@ -1,7 +1,8 @@
 -- ============================================================
 -- ATLETIX · FASE 14 · Rutina compartida Planche / Front Lever
--- Permite que los alumnos anotados en los programas "Planche / Front Lever"
--- (Intermedio / Avanzado / Elite) armen las sesiones en conjunto con su
+-- Permite que los alumnos anotados en los programas
+-- "Planche / Front Lever" (Intermedio / Avanzado / Elite) y
+-- "Planche y Front level" (asesorias) armen las sesiones en conjunto con su
 -- entrenador, y creen ejercicios nuevos en la biblioteca si no existen.
 -- El entrenador (admin) ya podia hacer todo; esto amplia los permisos al grupo.
 -- Todo es ADITIVO: no modifica ni borra datos existentes.
@@ -21,7 +22,7 @@ as $$
     select 1
     from public.athlete_programs ap
     join public.programs p on p.id = ap.program_id
-      and p.nombre = 'Planche / Front Lever'
+      and p.nombre in ('Planche / Front Lever', 'Planche y Front level')
     join public.athletes a on a.id = ap.athlete_id
       and a.user_id = auth.uid()
     where ap.estado = 'activo'
@@ -48,7 +49,7 @@ create policy "weeks_insert_planche" on public.weeks
     public.is_planche_member()
     and exists (
       select 1 from public.programs p
-      where p.id = program_id and p.nombre = 'Planche / Front Lever'
+      where p.id = program_id and p.nombre in ('Planche / Front Lever', 'Planche y Front level')
     )
   );
 
@@ -59,14 +60,14 @@ create policy "weeks_update_planche" on public.weeks
     public.is_planche_member()
     and exists (
       select 1 from public.programs p
-      where p.id = program_id and p.nombre = 'Planche / Front Lever'
+      where p.id = program_id and p.nombre in ('Planche / Front Lever', 'Planche y Front level')
     )
   )
   with check (
     public.is_planche_member()
     and exists (
       select 1 from public.programs p
-      where p.id = program_id and p.nombre = 'Planche / Front Lever'
+      where p.id = program_id and p.nombre in ('Planche / Front Lever', 'Planche y Front level')
     )
   );
 
@@ -77,7 +78,7 @@ create policy "weeks_delete_planche" on public.weeks
     public.is_planche_member()
     and exists (
       select 1 from public.programs p
-      where p.id = program_id and p.nombre = 'Planche / Front Lever'
+      where p.id = program_id and p.nombre in ('Planche / Front Lever', 'Planche y Front level')
     )
   );
 
@@ -92,7 +93,7 @@ create policy "workouts_insert_planche" on public.workouts
     and exists (
       select 1 from public.weeks w
       join public.programs p on p.id = w.program_id
-      where w.id = week_id and p.nombre = 'Planche / Front Lever'
+      where w.id = week_id and p.nombre in ('Planche / Front Lever', 'Planche y Front level')
     )
   );
 
@@ -104,7 +105,7 @@ create policy "workouts_update_planche" on public.workouts
     and exists (
       select 1 from public.weeks w
       join public.programs p on p.id = w.program_id
-      where w.id = week_id and p.nombre = 'Planche / Front Lever'
+      where w.id = week_id and p.nombre in ('Planche / Front Lever', 'Planche y Front level')
     )
   )
   with check (
@@ -112,7 +113,7 @@ create policy "workouts_update_planche" on public.workouts
     and exists (
       select 1 from public.weeks w
       join public.programs p on p.id = w.program_id
-      where w.id = week_id and p.nombre = 'Planche / Front Lever'
+      where w.id = week_id and p.nombre in ('Planche / Front Lever', 'Planche y Front level')
     )
   );
 
@@ -124,7 +125,7 @@ create policy "workouts_delete_planche" on public.workouts
     and exists (
       select 1 from public.weeks w
       join public.programs p on p.id = w.program_id
-      where w.id = week_id and p.nombre = 'Planche / Front Lever'
+      where w.id = week_id and p.nombre in ('Planche / Front Lever', 'Planche y Front level')
     )
   );
 
@@ -140,7 +141,7 @@ create policy "workout_exercises_insert_planche" on public.workout_exercises
       select 1 from public.workouts wo
       join public.weeks w on w.id = wo.week_id
       join public.programs p on p.id = w.program_id
-      where wo.id = workout_id and p.nombre = 'Planche / Front Lever'
+      where wo.id = workout_id and p.nombre in ('Planche / Front Lever', 'Planche y Front level')
     )
   );
 
@@ -153,7 +154,7 @@ create policy "workout_exercises_update_planche" on public.workout_exercises
       select 1 from public.workouts wo
       join public.weeks w on w.id = wo.week_id
       join public.programs p on p.id = w.program_id
-      where wo.id = workout_id and p.nombre = 'Planche / Front Lever'
+      where wo.id = workout_id and p.nombre in ('Planche / Front Lever', 'Planche y Front level')
     )
   )
   with check (
@@ -162,7 +163,7 @@ create policy "workout_exercises_update_planche" on public.workout_exercises
       select 1 from public.workouts wo
       join public.weeks w on w.id = wo.week_id
       join public.programs p on p.id = w.program_id
-      where wo.id = workout_id and p.nombre = 'Planche / Front Lever'
+      where wo.id = workout_id and p.nombre in ('Planche / Front Lever', 'Planche y Front level')
     )
   );
 
@@ -175,7 +176,7 @@ create policy "workout_exercises_delete_planche" on public.workout_exercises
       select 1 from public.workouts wo
       join public.weeks w on w.id = wo.week_id
       join public.programs p on p.id = w.program_id
-      where wo.id = workout_id and p.nombre = 'Planche / Front Lever'
+      where wo.id = workout_id and p.nombre in ('Planche / Front Lever', 'Planche y Front level')
     )
   );
 

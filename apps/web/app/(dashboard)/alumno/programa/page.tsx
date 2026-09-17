@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
 import { EmptyState } from "@/components/ui";
-import { PROGRAMA_PLANCHE_NOMBRE } from "@/lib/levels";
+import { esProgramaPlanificable, labelSesion } from "@/lib/levels";
 
 export const dynamic = "force-dynamic";
 
@@ -77,7 +77,7 @@ export default async function ProgramaAlumnoPage() {
     return <p className="text-zinc-500">Programa no encontrado.</p>;
   }
 
-  const editable = program.nombre === PROGRAMA_PLANCHE_NOMBRE;
+  const editable = esProgramaPlanificable(program.nombre);
 
   const weeks = (weeksRes.data ?? []) as {
     id: string;
@@ -174,8 +174,7 @@ export default async function ProgramaAlumnoPage() {
                         >
                           <span className="flex items-center justify-between gap-3">
                             <span className="font-bold text-emerald-200">
-                              {s.dia ? `Día ${s.dia} · ` : ""}
-                              {s.nombre}
+                              {labelSesion(s.dia, s.nombre)}
                             </span>
                             <span className="text-sm text-emerald-300">▶</span>
                           </span>

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
 import { EmptyState } from "@/components/ui";
-import { PROGRAMA_PLANCHE_NOMBRE } from "@/lib/levels";
+import { esProgramaPlanificable, labelSesion } from "@/lib/levels";
 import { SesionEditor } from "./sesion-editor";
 
 export const dynamic = "force-dynamic";
@@ -67,12 +67,12 @@ export default async function EditarSesionPage({
         .single()
     : { data: null };
 
-  if (!program || program.nombre !== PROGRAMA_PLANCHE_NOMBRE) {
+  if (!program || !esProgramaPlanificable(program.nombre)) {
     return (
       <div className="flex flex-col gap-6">
         <EmptyState
           title="Esta sesión no es de planificación compartida"
-          description="La edición conjunta está disponible solo para los programas Planche / Front Lever."
+          description="La edición conjunta está disponible solo para los programas de Planche / Front Lever."
         />
         <div>
           <Link
@@ -113,10 +113,9 @@ export default async function EditarSesionPage({
           <span className="text-zinc-300">{workout.nombre}</span>
         </div>
         <h1 className="mt-2 text-3xl font-black tracking-tight">
-          {workout.nombre}
+          {labelSesion(workout.dia, workout.nombre)}
         </h1>
         <p className="mt-1 text-sm text-zinc-400">
-          {workout.dia ? `Día ${workout.dia} · ` : ""}
           {rows.length} ejercicio{rows.length === 1 ? "" : "s"} · planificación
           compartida del grupo
         </p>
