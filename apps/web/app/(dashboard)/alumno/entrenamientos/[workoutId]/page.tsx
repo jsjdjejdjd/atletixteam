@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
+import { esProgramaPlanificable } from "@/lib/levels";
 import { LiveWorkout } from "./live-workout";
 
 export const dynamic = "force-dynamic";
@@ -35,7 +36,7 @@ export default async function EntrenamientoAlumnoPage({
   params: Promise<{ workoutId: string }>;
 }) {
   const { workoutId } = await params;
-  const { supabase, user } = await requireProfile();
+  const { supabase, user, profile } = await requireProfile();
 
   const hoy = new Date().toISOString().slice(0, 10);
 
@@ -61,8 +62,25 @@ export default async function EntrenamientoAlumnoPage({
     return <p className="text-zinc-500">Entrenamiento no encontrado.</p>;
   }
 
+  let canEdit = profile.rol === "admin";
+  if (!canEdit) {
+    const { data: week } = await supabase
+      .from("weeks")
+      .select("program_id")
+      .eq("id", workout.week_id)
+      .maybeSingle();
+    if (week) {
+      const { data: program } = await supabase
+        .from("programs")
+        .select("nombre")
+        .eq("id", week.program_id)
+        .maybeSingle();
+      canEdit = esProgramaPlanificable(program?.nombre ?? null);
+    }
+  }
+
   const raw = (weRes.data ?? []) as We[];
-  if (raw.length === 0) {
+  if (raw.length === 0 && !canEdit) {
     return (
       <div className="flex flex-col gap-8">
         <section>
@@ -91,20 +109,25 @@ export default async function EntrenamientoAlumnoPage({
     )
   );
 
-  const [logsRes, videosRes] = await Promise.all([
-    supabase
-      .from("workout_logs")
-      .select("id, workout_exercise_id, series_data, comentarios, completado")
-      .eq("athlete_id", user.id)
-      .eq("fecha", hoy)
-      .in("workout_exercise_id", ids),
-    supabase
-      .from("videos")
-      .select("workout_exercise_id, storage_path")
-      .eq("athlete_id", user.id)
-      .in("workout_exercise_id", ids)
-      .order("created_at", { ascending: false }),
-  ]);
+  const [logsRes, videosRes] = ids.length
+    ? await Promise.all([
+        supabase
+          .from("workout_logs")
+          .select("id, workout_exercise_id, series_data, comentarios, completado")
+          .eq("athlete_id", user.id)
+          .eq("fecha", hoy)
+          .in("workout_exercise_id", ids),
+        supabase
+          .from("videos")
+          .select("workout_exercise_id, storage_path")
+          .eq("athlete_id", user.id)
+          .in("workout_exercise_id", ids)
+          .order("created_at", { ascending: false }),
+      ])
+    : [
+        { data: [] as { id: string; workout_exercise_id: string; series_data: unknown; comentarios: string | null; completado: boolean }[] },
+        { data: [] as { workout_exercise_id: string | null; storage_path: string }[] },
+      ];
 
   const logMap = new Map(
     (logsRes.data ?? []).map((l) => [l.workout_exercise_id, l])
@@ -123,6 +146,7 @@ export default async function EntrenamientoAlumnoPage({
     return {
       id: w.id,
       exercise_id: w.exercise_id,
+      orden: w.orden,
       name: (info as { nombre?: string } | null)?.nombre ?? "Sin nombre",
       target: {
         series: w.series,
@@ -170,9 +194,18 @@ export default async function EntrenamientoAlumnoPage({
       </section>
 
       <LiveWorkout
+        workoutId={workoutId}
         workoutName={workout.nombre}
         athleteId={user.id}
         exercises={exercises}
+        canEdit={canEdit}
+        library={
+          (libRes.data ?? []) as {
+            id: string;
+            nombre: string;
+            video_url: string | null;
+          }[]
+        }
       />
     </div>
   );

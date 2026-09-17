@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Button } from "@/components/ui";
+import { Button, TextInput } from "@/components/ui";
 
 type Serie = {
   serie: number;
@@ -15,6 +15,8 @@ type Serie = {
 
 type Exercise = {
   id: string;
+  exercise_id: string | null;
+  orden: number;
   name: string;
   target: {
     series: number | null;
@@ -62,19 +64,30 @@ function formatTimerTime(total: number) {
 }
 
 export function LiveWorkout({
+  workoutId,
   workoutName,
   athleteId,
   exercises,
+  canEdit = false,
+  library = [],
 }: {
+  workoutId: string;
   workoutName: string;
   athleteId: string;
   exercises: Exercise[];
+  canEdit?: boolean;
+  library?: { id: string; nombre: string; video_url: string | null }[];
 }) {
   const router = useRouter();
+  const supabase = createClient();
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [typing, setTyping] = useState(false);
+
+  const [items, setItems] = useState<Exercise[]>(exercises);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     const onFocusIn = () => {
@@ -147,6 +160,111 @@ export function LiveWorkout({
     }));
   }
 
+  const filteredLibrary = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return library;
+    return library.filter((l) => l.nombre.toLowerCase().includes(q));
+  }, [library, search]);
+
+  async function addExercise(lib: {
+    id: string;
+    nombre: string;
+    video_url: string | null;
+  }) {
+    setError(null);
+    const nextOrden = Math.max(0, ...items.map((i) => i.orden)) + 1;
+    const { data: creado, error: insErr } = await supabase
+      .from("workout_exercises")
+      .insert({
+        workout_id: workoutId,
+        exercise_id: lib.id,
+        orden: nextOrden,
+        series: 3,
+        descanso_segundos: 90,
+      })
+      .select("id")
+      .single();
+    if (insErr || !creado) {
+      setError(insErr?.message ?? "No se pudo agregar el ejercicio.");
+      return;
+    }
+    const nuevo: Exercise = {
+      id: creado.id,
+      exercise_id: lib.id,
+      orden: nextOrden,
+      name: lib.nombre,
+      target: {
+        series: 3,
+        repeticiones: null,
+        tiempo: null,
+        rir: null,
+        descanso_segundos: 90,
+        peso: null,
+        tempo: null,
+        asistencia: null,
+        notas: null,
+        video_url: lib.video_url,
+        sugerencia_progresion: null,
+      },
+      log: null,
+      miVideo: null,
+    };
+    setItems((prev) => [...prev, nuevo]);
+    setData((prev) => ({
+      ...prev,
+      [nuevo.id]: {
+        rows: Array.from({ length: 3 }, () => ({
+          done: false,
+          reps: "",
+          peso: "",
+          rir: "",
+          descanso: "",
+        })),
+        comentario: "",
+      },
+    }));
+    setSearch("");
+    setPickerOpen(false);
+  }
+
+  async function removeExercise(id: string) {
+    setError(null);
+    const { error: delErr } = await supabase
+      .from("workout_exercises")
+      .delete()
+      .eq("id", id);
+    if (delErr) {
+      setError(delErr.message);
+      return;
+    }
+    setItems((prev) => prev.filter((i) => i.id !== id));
+    setData((prev) => {
+      const copy = { ...prev };
+      delete copy[id];
+      return copy;
+    });
+  }
+
+  async function moveExercise(index: number, dir: -1 | 1) {
+    const target = index + dir;
+    if (target < 0 || target >= items.length) return;
+    const reordered = [...items];
+    [reordered[index], reordered[target]] = [
+      reordered[target],
+      reordered[index],
+    ];
+    const conOrden = reordered.map((it, i) => ({ ...it, orden: i + 1 }));
+    setItems(conOrden);
+    await Promise.all(
+      conOrden.map((it) =>
+        supabase
+          .from("workout_exercises")
+          .update({ orden: it.orden })
+          .eq("id", it.id)
+      )
+    );
+  }
+
   const anyDone = useMemo(
     () =>
       Object.values(data).some((g) => g.rows.some((r) => r.done) || g.comentario.trim()),
@@ -186,10 +304,9 @@ export function LiveWorkout({
   async function handleFinish() {
     setSaving(true);
     setError(null);
-    const supabase = createClient();
 
     const hoy = new Date().toISOString().slice(0, 10);
-    const ids = exercises.map((e) => e.id);
+    const ids = items.map((e) => e.id);
 
     await supabase
       .from("workout_logs")
@@ -199,8 +316,8 @@ export function LiveWorkout({
       .in("workout_exercise_id", ids);
 
     try {
-      for (const ex of exercises) {
-        const g = data[ex.id];
+      for (const ex of items) {
+        const g = data[ex.id] ?? { rows: [], comentario: "" };
         const series = g.rows
           .filter((r) => r.done)
           .map((r, i) => ({
@@ -238,25 +355,103 @@ export function LiveWorkout({
 
   return (
     <div className="flex flex-col gap-6">
-      <ol className="flex flex-col gap-3">
-        {exercises.map((ex, i) => (
-          <ExerciseCard
-            key={ex.id}
-            index={i}
-            exercise={ex}
-            athleteId={athleteId}
-            rows={data[ex.id].rows}
-            onRow={(idx, patch) => setRow(ex.id, idx, patch)}
-            onAddRow={() => addRow(ex.id)}
-            onRemoveRow={(idx) => removeRow(ex.id, idx)}
-            onRestStart={() => startTimer(ex.target.descanso_segundos ?? 90)}
-            comentario={data[ex.id].comentario}
-            onComentario={(v) =>
-              setData((d) => ({ ...d, [ex.id]: { ...d[ex.id], comentario: v } }))
-            }
-          />
-        ))}
-      </ol>
+      {canEdit ? (
+        <div className="flex flex-col gap-3 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm text-zinc-400">
+              Podés ajustar la rutina mientras entrenás: reordená con ↑ ↓, quitá
+              o agregá ejercicios.
+            </p>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setPickerOpen((v) => !v)}
+            >
+              {pickerOpen ? "Cerrar" : "+ Agregar ejercicio"}
+            </Button>
+          </div>
+          {pickerOpen ? (
+            <div>
+              <TextInput
+                autoFocus
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Buscar en la biblioteca…"
+              />
+              <ul className="mt-3 flex max-h-72 flex-col gap-1 overflow-y-auto">
+                {filteredLibrary.length === 0 ? (
+                  <li className="px-2 py-3 text-sm text-zinc-600">
+                    No se encontraron ejercicios.
+                  </li>
+                ) : (
+                  filteredLibrary.slice(0, 60).map((l) => {
+                    const yaEsta = items.some((i) => i.exercise_id === l.id);
+                    return (
+                      <li key={l.id}>
+                        <button
+                          type="button"
+                          disabled={yaEsta}
+                          onClick={() => addExercise(l)}
+                          className="flex w-full items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm transition hover:bg-zinc-900 disabled:opacity-40"
+                        >
+                          <span className="font-medium">{l.nombre}</span>
+                          {yaEsta ? (
+                            <span className="text-xs text-zinc-500">ya está</span>
+                          ) : null}
+                        </button>
+                      </li>
+                    );
+                  })
+                )}
+              </ul>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+
+      {items.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/20 px-6 py-10 text-center">
+          <p className="text-sm font-semibold text-zinc-400">
+            Esta sesión todavía no tiene ejercicios
+          </p>
+          {canEdit ? (
+            <p className="mt-1 text-sm text-zinc-600">
+              Usá “+ Agregar ejercicio” para armar tu rutina.
+            </p>
+          ) : null}
+        </div>
+      ) : (
+        <ol className="flex flex-col gap-3">
+          {items.map((ex, i) => {
+            const g = data[ex.id] ?? { rows: [], comentario: "" };
+            return (
+              <ExerciseCard
+                key={ex.id}
+                index={i}
+                exercise={ex}
+                athleteId={athleteId}
+                rows={g.rows}
+                onRow={(idx, patch) => setRow(ex.id, idx, patch)}
+                onAddRow={() => addRow(ex.id)}
+                onRemoveRow={(idx) => removeRow(ex.id, idx)}
+                onRestStart={() => startTimer(ex.target.descanso_segundos ?? 90)}
+                comentario={g.comentario}
+                onComentario={(v) =>
+                  setData((d) => ({
+                    ...d,
+                    [ex.id]: { rows: d[ex.id]?.rows ?? [], comentario: v },
+                  }))
+                }
+                canEdit={canEdit}
+                total={items.length}
+                onMoveUp={() => moveExercise(i, -1)}
+                onMoveDown={() => moveExercise(i, 1)}
+                onRemove={() => removeExercise(ex.id)}
+              />
+            );
+          })}
+        </ol>
+      )}
 
       <div
         className={`${typing ? "relative" : "sticky bottom-4"} flex flex-col gap-3 rounded-2xl border border-zinc-800 bg-zinc-950/95 p-3 backdrop-blur`}
@@ -408,6 +603,11 @@ function ExerciseCard({
   onRestStart,
   comentario,
   onComentario,
+  canEdit = false,
+  total = 1,
+  onMoveUp,
+  onMoveDown,
+  onRemove,
 }: {
   index: number;
   exercise: Exercise;
@@ -419,6 +619,11 @@ function ExerciseCard({
   onRestStart: () => void;
   comentario: string;
   onComentario: (v: string) => void;
+  canEdit?: boolean;
+  total?: number;
+  onMoveUp?: () => void;
+  onMoveDown?: () => void;
+  onRemove?: () => void;
 }) {
   const supabase = createClient();
   const t = exercise.target;
@@ -426,6 +631,7 @@ function ExerciseCard({
   const [uploading, setUploading] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(exercise.miVideo);
   const [videoError, setVideoError] = useState<string | null>(null);
+  const [confirmRemove, setConfirmRemove] = useState(false);
 
   async function handleVideo(file: File) {
     setVideoError(null);
@@ -460,6 +666,55 @@ function ExerciseCard({
           {index + 1}
         </span>
         <h2 className="text-base font-bold uppercase">{exercise.name}</h2>
+        {canEdit ? (
+          <div className="ml-auto flex items-center gap-1">
+            <button
+              type="button"
+              onClick={onMoveUp}
+              disabled={index === 0}
+              title="Subir"
+              className="flex h-7 w-7 items-center justify-center rounded-md border border-zinc-800 text-sm text-zinc-400 transition hover:border-zinc-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+            >
+              ↑
+            </button>
+            <button
+              type="button"
+              onClick={onMoveDown}
+              disabled={index === total - 1}
+              title="Bajar"
+              className="flex h-7 w-7 items-center justify-center rounded-md border border-zinc-800 text-sm text-zinc-400 transition hover:border-zinc-600 hover:text-white disabled:cursor-not-allowed disabled:opacity-30"
+            >
+              ↓
+            </button>
+            {confirmRemove ? (
+              <span className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={onRemove}
+                  className="rounded-md bg-red-950 px-2 py-1 text-xs font-semibold text-red-200 transition hover:bg-red-900"
+                >
+                  Quitar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmRemove(false)}
+                  className="rounded-md border border-zinc-800 px-2 py-1 text-xs text-zinc-400 transition hover:border-zinc-600"
+                >
+                  No
+                </button>
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmRemove(true)}
+                title="Quitar ejercicio"
+                className="flex h-7 w-7 items-center justify-center rounded-md border border-zinc-800 text-xs text-zinc-500 transition hover:border-red-800 hover:text-red-300"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        ) : null}
       </div>
 
       <div className="mt-2.5 flex flex-wrap items-center gap-1.5 text-xs">
