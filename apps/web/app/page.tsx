@@ -32,16 +32,23 @@ const niveles = [
 const programas = [
   {
     nombre: "Arrancá desde cero",
-    desc: "Del sillón a moverte con confianza. Hábito primero, fuerza después.",
-    puntos: ["Rutinas cortas y sin frustración", "Arrancás sin equipamiento"],
+    kicker: "Empezá hoy",
+    desc: "¿Nunca entrenaste o hace años que no movés el cuerpo? No importa. Arrancamos de a poco, sin presión y a tu ritmo: primero el hábito, después la fuerza.",
+    puntos: [
+      "Rutinas cortas, pensadas para que no las faltes",
+      "Sin equipamiento ni experiencia previa",
+      "Un plan que empieza por tu nivel real",
+    ],
   },
   {
     nombre: "Rendimiento",
+    kicker: "Calistenia",
     desc: "Planes serios para mejorar tu rendimiento y verlo en los números.",
     puntos: ["Fuerza con tu cuerpo y con cargas", "RIR, descargas y seguimiento"],
   },
   {
     nombre: "Nivel competitivo",
+    kicker: "Calistenia",
     desc: "Ruta de atleta: entrená con propósito de competir y rendir.",
     puntos: ["Street lifting y rutas de competencia", "Bloques, picos y descargas"],
   },
@@ -172,7 +179,7 @@ export default function Home() {
               {programas.map((c) => (
                 <div key={c.nombre} className="flex flex-col rounded-2xl border border-zinc-800 bg-zinc-900/40 p-7 sm:p-8">
                   <p className="text-sm font-black tracking-[0.2em] text-zinc-500 uppercase">
-                    Calistenia
+                    {c.kicker}
                   </p>
                   <h3 className="mt-3 text-xl font-extrabold">{c.nombre}</h3>
                   <p className="mt-3 text-[15px] leading-relaxed text-zinc-400">{c.desc}</p>
