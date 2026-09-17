@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
 import { EmptyState } from "@/components/ui";
+import { PROGRAMA_PLANCHE_NOMBRE } from "@/lib/levels";
 
 export const dynamic = "force-dynamic";
 
@@ -76,6 +77,8 @@ export default async function ProgramaAlumnoPage() {
     return <p className="text-zinc-500">Programa no encontrado.</p>;
   }
 
+  const editable = program.nombre === PROGRAMA_PLANCHE_NOMBRE;
+
   const weeks = (weeksRes.data ?? []) as {
     id: string;
     numero: number;
@@ -118,6 +121,13 @@ export default async function ProgramaAlumnoPage() {
             Cambiar de programa
           </Link>
         </div>
+        {editable ? (
+          <p className="mt-4 rounded-xl border border-emerald-900/60 bg-emerald-950/20 px-4 py-3 text-sm text-emerald-200">
+            Este programa es de planificación compartida: los anotados pueden
+            abrir cada día y armar su rutina con los ejercicios de la biblioteca
+            (o crear uno nuevo si falta).
+          </p>
+        ) : null}
       </section>
 
       {weeks.length === 0 ? (
@@ -173,6 +183,14 @@ export default async function ProgramaAlumnoPage() {
                             Empezar entrenamiento
                           </span>
                         </Link>
+                        {editable ? (
+                          <Link
+                            href={`/alumno/programa/sesiones/${s.id}`}
+                            className="mt-2 inline-flex w-fit rounded-lg border border-zinc-700 px-4 py-2 text-xs font-medium text-zinc-300 transition hover:border-zinc-500 hover:text-white"
+                          >
+                            Editar sesión · armar rutina
+                          </Link>
+                        ) : null}
                       </li>
                     ))
                   )}

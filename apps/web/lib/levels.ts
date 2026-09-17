@@ -18,3 +18,19 @@ export const FAMILIA_ASESORIAS: Record<
 > = {
   "Planche y Front level": { titulo: "Asesorías online", etiquetaOpcion: "descripcion" },
 };
+
+export const PROGRAMA_PLANCHE_NOMBRE = "Planche / Front Lever";
+
+export const EJERCICIO_CATEGORIAS = [
+  "Tirón",
+  "Empuje",
+  "Piernas",
+  "Core",
+  "Planche",
+  "Front Lever",
+  "Muscle Up",
+  "Handstand",
+  "Street Lifting",
+  "Movilidad",
+  "Prehabilitación",
+];
