@@ -1,6 +1,8 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+const SB_COOKIE_PREFIX = `sb-${process.env.NEXT_PUBLIC_SUPABASE_URL!.split("//")[1].split(".")[0]}`;
+
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
@@ -29,6 +31,14 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Self-heal: limpiar cookies de Supabase viejas/rotas cuando no hay sesión válida
+  if (!user) {
+    request.cookies
+      .getAll()
+      .filter((c) => c.name.startsWith(SB_COOKIE_PREFIX))
+      .forEach((c) => response.cookies.set({ name: c.name, value: "", maxAge: 0 }));
+  }
+
   const pathname = request.nextUrl.pathname;
   const isAuthPage =
     pathname.startsWith("/login") || pathname.startsWith("/register");
@@ -43,10 +53,15 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Con sesión → no tiene sentido ver login/registro
+  // Con sesión → redirigir al dashboard de su rol (no a landing)
   if (user && isAuthPage) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("rol")
+      .eq("id", user.id)
+      .single();
     const url = request.nextUrl.clone();
-    url.pathname = "/";
+    url.pathname = profile?.rol === "admin" ? "/entrenador" : "/alumno";
     return NextResponse.redirect(url);
   }
 
