@@ -27,7 +27,12 @@ type ExerciseItem = {
 type LogItem = {
   id: string;
   fecha: string;
-  series_data: { serie: number; reps?: string | null; peso?: string | null }[];
+  series_data: {
+    serie: number;
+    reps?: string | null;
+    peso?: string | null;
+    rir?: number | null;
+  }[];
   comentarios: string | null;
   athlete: string;
   exercise: string;
@@ -78,10 +83,14 @@ export function WorkoutEditor({
           <ul className="divide-y divide-zinc-800">
             {logs.map((log) => {
               const resumen = log.series_data
-                .map((s) =>
-                  s.reps ? `${s.serie}: ${s.reps} reps` : `S${s.serie}`
-                )
-                .join(" · ");
+                .map((s) => {
+                  const partes: string[] = [];
+                  if (s.reps) partes.push(`${s.reps} reps`);
+                  if (s.peso) partes.push(`${s.peso} kg`);
+                  if (s.rir != null) partes.push(`RIR ${s.rir}`);
+                  return `S${s.serie}: ${partes.join(" · ") || "—"}`;
+                })
+                .join("  |  ");
               return (
                 <li key={log.id} className="px-6 py-4">
                   <div className="flex items-center justify-between gap-3">

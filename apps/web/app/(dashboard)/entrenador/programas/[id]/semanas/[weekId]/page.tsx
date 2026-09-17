@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
 import { EmptyState, SectionCard } from "@/components/ui";
 import { DeleteButton } from "@/components/delete-button";
+import { labelSesion } from "@/lib/levels";
 import { WorkoutForm } from "./workout-form";
 
 export const dynamic = "force-dynamic";
@@ -85,7 +86,7 @@ export default async function SemanaPage({
                   >
                     <div>
                       <p className="font-semibold">
-                        Día {wo.dia ?? "?"} · {wo.nombre}
+                        {labelSesion(wo.dia, wo.nombre)}
                       </p>
                       {wo.descripcion ? (
                         <p className="text-sm text-zinc-500">{wo.descripcion}</p>

@@ -108,6 +108,7 @@ export default async function EntrenamientoPage({
       serie: number;
       reps?: string | null;
       peso?: string | null;
+      rir?: number | null;
     }[],
     comentarios: l.comentarios as string | null,
     athlete: profileMap.get(l.athlete_id) ?? "Alumno",
