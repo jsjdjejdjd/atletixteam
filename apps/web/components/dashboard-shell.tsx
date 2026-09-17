@@ -14,6 +14,7 @@ const ADMIN_LINKS: NavLink[] = [
   { href: "/entrenador/programas", label: "Programas" },
   { href: "/entrenador/ejercicios", label: "Ejercicios" },
   { href: "/entrenador/alumnos", label: "Alumnos" },
+  { href: "/entrenador/registros", label: "Registros" },
   { href: "/entrenador/chat", label: "Chat" },
 ];
 
