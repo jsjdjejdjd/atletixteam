@@ -15,13 +15,20 @@ type AthleteRowData = {
 };
 
 export default async function AlumnosPage() {
-  const { supabase, user } = await requireProfile();
+  const { supabase, user, profile } = await requireProfile();
+  const esAdmin = profile.rol === "admin";
 
-  const { data: athletesRes } = await supabase
+  let athletesQuery = supabase
     .from("athletes")
-    .select("id, user_id, nivel, estado")
-    .eq("entrenador_id", user.id)
-    .order("created_at", { ascending: false });
+    .select("id, user_id, nivel, estado");
+
+  if (!esAdmin) {
+    athletesQuery = athletesQuery.eq("entrenador_id", user.id);
+  }
+
+  const { data: athletesRes } = await athletesQuery.order("created_at", {
+    ascending: false,
+  });
 
   const athletes = (athletesRes ?? []) as Pick<
     AthleteRowData,
