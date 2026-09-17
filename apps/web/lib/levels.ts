@@ -11,3 +11,10 @@ export function categoriaLabel(cat: string | null) {
   if (cat === "front_lever") return "Front Lever";
   return "Calistenia General";
 }
+
+export const FAMILIA_ASESORIAS: Record<
+  string,
+  { titulo?: string; etiquetaOpcion: "nivel" | "descripcion" }
+> = {
+  "Planche y Front level": { titulo: "Asesorías online", etiquetaOpcion: "descripcion" },
+};

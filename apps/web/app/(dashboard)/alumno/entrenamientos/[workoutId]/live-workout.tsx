@@ -74,6 +74,25 @@ export function LiveWorkout({
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [typing, setTyping] = useState(false);
+
+  useEffect(() => {
+    const onFocusIn = () => {
+      const el = document.activeElement;
+      setTyping(
+        !!el &&
+          (el.tagName === "INPUT" ||
+            el.tagName === "TEXTAREA" ||
+            el.tagName === "SELECT")
+      );
+    };
+    window.addEventListener("focusin", onFocusIn);
+    window.addEventListener("focusout", onFocusIn);
+    return () => {
+      window.removeEventListener("focusin", onFocusIn);
+      window.removeEventListener("focusout", onFocusIn);
+    };
+  }, []);
 
   const [data, setData] = useState<Record<string, { rows: Row[]; comentario: string }>>(() => {
     const init: Record<string, { rows: Row[]; comentario: string }> = {};
@@ -218,8 +237,8 @@ export function LiveWorkout({
   }
 
   return (
-    <div className="flex flex-col gap-8">
-      <ol className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6">
+      <ol className="flex flex-col gap-3">
         {exercises.map((ex, i) => (
           <ExerciseCard
             key={ex.id}
@@ -239,7 +258,9 @@ export function LiveWorkout({
         ))}
       </ol>
 
-      <div className="sticky bottom-4 flex flex-col gap-3 rounded-2xl border border-zinc-800 bg-zinc-950/95 p-4 backdrop-blur">
+      <div
+        className={`${typing ? "relative" : "sticky bottom-4"} flex flex-col gap-3 rounded-2xl border border-zinc-800 bg-zinc-950/95 p-3 backdrop-blur`}
+      >
         <RestTimerBar
           remaining={timerRemaining}
           running={timerRunning}
@@ -316,7 +337,7 @@ function RestTimerBar({
         ) : (
           <>
             <span
-              className={`font-mono text-2xl font-black tabular-nums ${
+              className={`font-mono text-xl font-black tabular-nums ${
                 finished ? "text-emerald-300" : "text-white"
               }`}
             >
@@ -433,67 +454,67 @@ function ExerciseCard({
   }
 
   return (
-    <li className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6">
-      <div className="flex items-center gap-3">
-        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-zinc-800 text-sm font-bold text-zinc-300">
+    <li className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4">
+      <div className="flex items-center gap-2.5">
+        <span className="flex h-6 w-6 items-center justify-center rounded-md bg-zinc-800 text-xs font-bold text-zinc-300">
           {index + 1}
         </span>
-        <h2 className="text-lg font-extrabold uppercase">{exercise.name}</h2>
+        <h2 className="text-base font-bold uppercase">{exercise.name}</h2>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+      <div className="mt-2.5 flex flex-wrap items-center gap-1.5 text-xs">
         {t.series ? (
-          <span className="rounded-lg bg-white px-3 py-1.5 font-bold text-zinc-950">
+          <span className="rounded-md bg-white px-2.5 py-1 font-bold text-zinc-950">
             {t.series}× {t.repeticiones || (t.tiempo ? "" : "—")}
           </span>
         ) : null}
         {t.repeticiones ? (
-          <span className="rounded-lg border border-zinc-700 px-3 py-1.5 text-zinc-300">
+          <span className="rounded-md border border-zinc-700 px-2.5 py-1 text-zinc-300">
             {t.repeticiones} reps
           </span>
         ) : null}
         {t.tiempo ? (
-          <span className="rounded-lg border border-zinc-700 px-3 py-1.5 text-zinc-300">
+          <span className="rounded-md border border-zinc-700 px-2.5 py-1 text-zinc-300">
             {t.tiempo}
           </span>
         ) : null}
         {t.rir != null ? (
-          <span className="rounded-lg border border-zinc-700 px-3 py-1.5 text-zinc-300">
+          <span className="rounded-md border border-zinc-700 px-2.5 py-1 text-zinc-300">
             RIR {t.rir}
           </span>
         ) : null}
         {t.peso ? (
-          <span className="rounded-lg border border-zinc-700 px-3 py-1.5 font-semibold text-zinc-300">
+          <span className="rounded-md border border-zinc-700 px-2.5 py-1 font-semibold text-zinc-300">
             {t.peso}
           </span>
         ) : null}
         {t.tempo ? (
-          <span className="rounded-lg border border-zinc-700 px-3 py-1.5 text-zinc-400">
+          <span className="rounded-md border border-zinc-700 px-2.5 py-1 text-zinc-400">
             Tempo {t.tempo}
           </span>
         ) : null}
         {t.asistencia ? (
-          <span className="rounded-lg border border-zinc-700 px-3 py-1.5 text-zinc-400">
+          <span className="rounded-md border border-zinc-700 px-2.5 py-1 text-zinc-400">
             Asistencia: {t.asistencia}
           </span>
         ) : null}
       </div>
 
       {t.sugerencia_progresion ? (
-        <p className="mt-3 rounded-xl border border-amber-800/70 bg-amber-950/40 px-4 py-3 text-sm text-amber-200">
+        <p className="mt-2.5 rounded-lg border border-amber-800/70 bg-amber-950/40 px-3 py-2.5 text-sm text-amber-200">
           <span className="font-bold">Sugerencia de tu entrenador:</span>{" "}
           {t.sugerencia_progresion}
         </p>
       ) : null}
 
       {t.notas ? (
-        <p className="mt-3 text-sm text-zinc-400">
+        <p className="mt-2.5 text-sm text-zinc-400">
           <span className="font-semibold text-zinc-300">Notas:</span> {t.notas}
         </p>
       ) : null}
 
-      <div className="mt-4 flex flex-col gap-2">
-        <div className="grid grid-cols-[2rem_minmax(5rem,1.2fr)_4rem_3rem_3.5rem] items-center gap-2 rounded-t-xl border border-zinc-800 bg-zinc-950/60 px-3 py-2 text-xs font-semibold text-zinc-500">
+      <div className="mt-3.5 flex flex-col gap-2">
+        <div className="grid grid-cols-[2rem_minmax(5rem,1.2fr)_4rem_3rem_3.5rem] items-center gap-2 rounded-t-xl border border-zinc-800 bg-zinc-950/60 px-2 py-1.5 text-[11px] font-semibold text-zinc-500">
           <span>✓</span>
           <span>Reps / Tiempo</span>
           <span>Peso</span>
@@ -503,7 +524,7 @@ function ExerciseCard({
         {rows.map((r, idx) => (
           <div
             key={idx}
-            className={`grid grid-cols-[2rem_minmax(5rem,1.2fr)_4rem_3rem_3.5rem] items-center gap-2 rounded-xl border px-3 py-2 ${
+            className={`grid grid-cols-[2rem_minmax(5rem,1.2fr)_4rem_3rem_3.5rem] items-center gap-2 rounded-xl border px-2 py-1.5 ${
               r.done
                 ? "border-emerald-800/70 bg-emerald-950/30"
                 : "border-zinc-800 bg-zinc-950/40"
@@ -522,7 +543,7 @@ function ExerciseCard({
               value={r.reps}
               onChange={(e) => onRow(idx, { reps: e.target.value })}
               placeholder={t.repeticiones || "—"}
-              className="w-full rounded-md border border-zinc-800 bg-zinc-950 px-2 py-2.5 text-base text-zinc-100 outline-none focus:border-zinc-500"
+              className="w-full rounded-md border border-zinc-800 bg-zinc-950 px-2 py-2 text-base text-zinc-100 outline-none focus:border-zinc-500"
             />
             <div className="flex items-center gap-1">
               <input
@@ -561,27 +582,27 @@ function ExerciseCard({
         ))}
         <button
           onClick={onAddRow}
-          className="w-fit rounded-lg border border-zinc-800 px-3 py-1.5 text-xs font-medium text-zinc-400 transition hover:border-zinc-600 hover:text-zinc-200"
+          className="w-fit rounded-md border border-zinc-800 px-2.5 py-1 text-xs font-medium text-zinc-400 transition hover:border-zinc-600 hover:text-zinc-200"
         >
           + Agregar serie
         </button>
       </div>
 
-      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="mt-3.5 flex flex-col gap-2.5 sm:flex-row sm:items-start sm:justify-between">
         <input
           value={comentario}
           onChange={(e) => onComentario(e.target.value)}
           placeholder="Comentario de la sesión (opcional)"
-          className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-zinc-500 sm:max-w-md"
+          className="w-full rounded-md border border-zinc-800 bg-zinc-950 px-2.5 py-1.5 text-sm text-zinc-100 outline-none focus:border-zinc-500 sm:max-w-md"
         />
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5">
           {videoUrl ? (
             <a
               href={videoUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-lg bg-emerald-950 px-3 py-2 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-900"
+              className="rounded-md bg-emerald-950 px-2.5 py-1.5 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-900"
             >
               ▶ Mi video ✓
             </a>
@@ -591,12 +612,12 @@ function ExerciseCard({
               href={t.video_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="rounded-lg border border-zinc-700 px-3 py-2 text-xs font-medium text-zinc-300 transition hover:border-zinc-500"
+              className="rounded-md border border-zinc-700 px-2.5 py-1.5 text-xs font-medium text-zinc-300 transition hover:border-zinc-500"
             >
               ▶ Demo
             </a>
           ) : null}
-          <label className="cursor-pointer rounded-lg border border-zinc-700 px-3 py-2 text-xs font-medium text-zinc-300 transition hover:border-zinc-500">
+          <label className="cursor-pointer rounded-md border border-zinc-700 px-2.5 py-1.5 text-xs font-medium text-zinc-300 transition hover:border-zinc-500">
             {uploading ? "Subiendo…" : "Subir video"}
             <input
               type="file"
