@@ -493,7 +493,7 @@ function ExerciseCard({
       ) : null}
 
       <div className="mt-4 flex flex-col gap-2">
-        <div className="grid grid-cols-[2rem_minmax(6rem,1.6fr)_4.5rem_3.5rem_3.5rem] items-center gap-2 rounded-t-xl border border-zinc-800 bg-zinc-950/60 px-3 py-2 text-xs font-semibold text-zinc-500">
+        <div className="grid grid-cols-[2rem_minmax(5rem,1.2fr)_4rem_3rem_3.5rem] items-center gap-2 rounded-t-xl border border-zinc-800 bg-zinc-950/60 px-3 py-2 text-xs font-semibold text-zinc-500">
           <span>✓</span>
           <span>Reps / Tiempo</span>
           <span>Peso</span>
@@ -503,7 +503,7 @@ function ExerciseCard({
         {rows.map((r, idx) => (
           <div
             key={idx}
-            className={`grid grid-cols-[2rem_minmax(6rem,1.6fr)_4.5rem_3.5rem_3.5rem] items-center gap-2 rounded-xl border px-3 py-2 ${
+            className={`grid grid-cols-[2rem_minmax(5rem,1.2fr)_4rem_3rem_3.5rem] items-center gap-2 rounded-xl border px-3 py-2 ${
               r.done
                 ? "border-emerald-800/70 bg-emerald-950/30"
                 : "border-zinc-800 bg-zinc-950/40"
