@@ -1,6 +1,11 @@
 import Link from "next/link";
-import { PRODUCTOS, linkWhatsApp } from "@/lib/supplements";
+import { PRODUCTOS, WHATSAPP_NUMERO, linkWhatsApp } from "@/lib/supplements";
 import { ProductCard } from "@/components/supplements/product-card";
+
+function linkProgramaWhatsApp(nombre: string): string {
+  const texto = `Hola! Quiero más información sobre el programa ${nombre}.`;
+  return `https://wa.me/${WHATSAPP_NUMERO}?text=${encodeURIComponent(texto)}`;
+}
 
 function Logo() {
   return (
@@ -193,6 +198,14 @@ export default function Home() {
                       </li>
                     ))}
                   </ul>
+                  <a
+                    href={linkProgramaWhatsApp(c.nombre)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-auto block w-full rounded-full bg-white px-5 py-3 text-center text-sm font-bold text-zinc-950 transition hover:bg-zinc-200"
+                  >
+                    Consultar planificación
+                  </a>
                 </div>
               ))}
             </div>
