@@ -33,7 +33,9 @@ export default async function ProgramasCatalogoPage() {
     .select("id, nombre, objetivo, descripcion, nivel, categoria, duracion_semanas")
     .eq("activo", true);
   if (trainerId) {
-    catalogQuery = catalogQuery.eq("entrenador_id", trainerId);
+    catalogQuery = catalogQuery.or(
+      `entrenador_id.eq.${trainerId},entrenador_id.is.null`
+    );
   }
 
   const { data: programs } = await catalogQuery.order("nombre", {
