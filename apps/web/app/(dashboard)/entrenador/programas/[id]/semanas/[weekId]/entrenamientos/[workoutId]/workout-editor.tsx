@@ -48,7 +48,7 @@ export function WorkoutEditor({
 }: {
   workoutId: string;
   exercises: ExerciseItem[];
-  library: { id: string; nombre: string; categoria: string }[];
+  library: { id: string; nombre: string; categoria: string; disciplina?: string | null }[];
   logs?: LogItem[];
   esCombo?: boolean;
 }) {
@@ -135,7 +135,7 @@ function AddExerciseForm({
   onSaved,
 }: {
   workoutId: string;
-  library: { id: string; nombre: string; categoria: string }[];
+  library: { id: string; nombre: string; categoria: string; disciplina?: string | null }[];
   nextOrder: number;
   onSaved: () => void;
 }) {
@@ -152,7 +152,14 @@ function AddExerciseForm({
 
   const seleccionado = library.find((l) => l.id === exerciseId) ?? null;
   const q = busqueda.trim().toLowerCase();
+  const esCalistenia = (l: (typeof library)[number]) => {
+    const disc = l.disciplina ?? "Calistenia";
+    if (disc === "Musculación") return false;
+    return disc === "Calistenia" || disc === "Accesorios Calistenia";
+  };
   const filtrados = library
+    .filter(esCalistenia)
+    .filter((l) => l.categoria !== "Core")
     .filter(
       (l) =>
         !q ||

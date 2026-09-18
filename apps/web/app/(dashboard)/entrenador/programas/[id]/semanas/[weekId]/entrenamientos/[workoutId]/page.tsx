@@ -43,7 +43,7 @@ export default async function EntrenamientoPage({
       .order("orden", { ascending: true }),
     supabase
       .from("exercises")
-      .select("id, nombre, categoria")
+      .select("id, nombre, categoria, disciplina")
       .order("nombre", { ascending: true }),
     (async () => {
       const weIds = (
@@ -69,7 +69,14 @@ export default async function EntrenamientoPage({
     id: string;
     nombre: string;
     categoria: string;
+    disciplina?: string | null;
   }[];
+
+  const soloCalistenia = library.filter(
+    (l) =>
+      (l.disciplina === "Calistenia" || l.disciplina === "Accesorios Calistenia") &&
+      l.categoria !== "Core"
+  );
 
   const exerciseMap = new Map(
     library.map((l) => [l.id, { nombre: l.nombre, categoria: l.categoria }])
@@ -152,7 +159,7 @@ export default async function EntrenamientoPage({
       <WorkoutEditor
         workoutId={workoutId}
         exercises={exercises}
-        library={library}
+        library={soloCalistenia}
         logs={logs}
         esCombo={Boolean((workout as { es_combo?: boolean }).es_combo)}
       />
