@@ -29,6 +29,11 @@ export type Exercise = {
   musculos_secundarios?: string[] | null;
   objetivo?: string | null;
   unilateral?: boolean | null;
+  movement_type?: string | null;
+  skill?: string | null;
+  muscle_group?: string | null;
+  estado_clasificacion?: string | null;
+  duplicado_de?: string | null;
   video_url: string | null;
 };
 
@@ -60,15 +65,22 @@ export default function EjerciciosBrowser({
   const [equipamiento, setEquipamiento] = useState(ALL);
   const [tipoEjercicio, setTipoEjercicio] = useState(ALL);
   const [tipoResistencia, setTipoResistencia] = useState(ALL);
+  const [movementType, setMovementType] = useState(ALL);
+  const [skill, setSkill] = useState(ALL);
+  const [muscleGroup, setMuscleGroup] = useState(ALL);
   const [objetivo, setObjetivo] = useState(ALL);
   const [dificultad, setDificultad] = useState(ALL);
   const [unilateral, setUnilateral] = useState(ALL);
+  const [mostrarDuplicados, setMostrarDuplicados] = useState(false);
+  const [mostrarRevisar, setMostrarRevisar] = useState(false);
 
   const [editing, setEditing] = useState<Exercise | null>(null);
   const [editNombre, setEditNombre] = useState("");
   const [editVideo, setEditVideo] = useState("");
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
+
+  const esCalistenia = pestana === "Calistenia";
 
   const conteos = useMemo(() => {
     const c: Record<string, number> = {
@@ -85,17 +97,25 @@ export default function EjerciciosBrowser({
   }, [exercises]);
 
   const porDisciplina = useMemo(() => {
-    if (pestana === "todas") return exercises;
-    return exercises.filter((e) => disciplinaDe(e) === pestana);
-  }, [exercises, pestana]);
+    let base = exercises;
+    if (pestana !== "todas") base = base.filter((e) => disciplinaDe(e) === pestana);
+    if (!mostrarDuplicados) base = base.filter((e) => !e.duplicado_de);
+    if (!mostrarRevisar) base = base.filter((e) => e.estado_clasificacion !== "revisar");
+    return base;
+  }, [exercises, pestana, mostrarDuplicados, mostrarRevisar]);
 
   const categorias = useMemo(
     () => uniqueSorted(porDisciplina.map((e) => e.categoria)),
     [porDisciplina]
   );
   const subcategorias = useMemo(
-    () => uniqueSorted(porDisciplina.map((e) => e.subcategoria)),
-    [porDisciplina]
+    () =>
+      uniqueSorted(
+        porDisciplina
+          .filter((e) => categoria === ALL || e.categoria === categoria)
+          .map((e) => e.subcategoria)
+      ),
+    [porDisciplina, categoria]
   );
   const equipamientos = useMemo(
     () => uniqueSorted(porDisciplina.map((e) => e.equipamiento)),
@@ -109,6 +129,18 @@ export default function EjerciciosBrowser({
     () => uniqueSorted(porDisciplina.map((e) => e.tipo_resistencia)),
     [porDisciplina]
   );
+  const movementTypes = useMemo(
+    () => uniqueSorted(porDisciplina.map((e) => e.movement_type)),
+    [porDisciplina]
+  );
+  const skills = useMemo(
+    () => uniqueSorted(porDisciplina.map((e) => e.skill)),
+    [porDisciplina]
+  );
+  const muscleGroups = useMemo(
+    () => uniqueSorted(porDisciplina.map((e) => e.muscle_group)),
+    [porDisciplina]
+  );
   const objetivos = useMemo(
     () => uniqueSorted(porDisciplina.map((e) => e.objetivo)),
     [porDisciplina]
@@ -118,6 +150,22 @@ export default function EjerciciosBrowser({
     [porDisciplina]
   );
 
+  const conteosCat = useMemo(() => {
+    const c: Record<string, number> = {};
+    for (const e of porDisciplina) c[e.categoria] = (c[e.categoria] ?? 0) + 1;
+    return c;
+  }, [porDisciplina]);
+
+  const conteosSub = useMemo(() => {
+    const c: Record<string, number> = {};
+    for (const e of porDisciplina) {
+      if (categoria !== ALL && e.categoria !== categoria) continue;
+      if (!e.subcategoria) continue;
+      c[e.subcategoria] = (c[e.subcategoria] ?? 0) + 1;
+    }
+    return c;
+  }, [porDisciplina, categoria]);
+
   function cambiarPestana(p: Pestaña) {
     setPestana(p);
     setCategoria(ALL);
@@ -125,9 +173,17 @@ export default function EjerciciosBrowser({
     setEquipamiento(ALL);
     setTipoEjercicio(ALL);
     setTipoResistencia(ALL);
+    setMovementType(ALL);
+    setSkill(ALL);
+    setMuscleGroup(ALL);
     setObjetivo(ALL);
     setDificultad(ALL);
     setUnilateral(ALL);
+  }
+
+  function elegirCategoria(c: string) {
+    setCategoria(c);
+    setSubcategoria(ALL);
   }
 
   const list = useMemo(() => {
@@ -139,6 +195,9 @@ export default function EjerciciosBrowser({
       if (tipoEjercicio !== ALL && e.tipo_ejercicio !== tipoEjercicio) return false;
       if (tipoResistencia !== ALL && e.tipo_resistencia !== tipoResistencia)
         return false;
+      if (movementType !== ALL && e.movement_type !== movementType) return false;
+      if (skill !== ALL && e.skill !== skill) return false;
+      if (muscleGroup !== ALL && e.muscle_group !== muscleGroup) return false;
       if (objetivo !== ALL && e.objetivo !== objetivo) return false;
       if (dificultad !== ALL && e.dificultad !== dificultad) return false;
       if (unilateral === "si" && !e.unilateral) return false;
@@ -149,6 +208,8 @@ export default function EjerciciosBrowser({
           e.nombre_en ?? "",
           e.aliases ?? "",
           e.subcategoria ?? "",
+          e.skill ?? "",
+          e.muscle_group ?? "",
           ...(e.musculos_primarios ?? []),
           ...(e.musculos_secundarios ?? []),
         ]
@@ -166,6 +227,9 @@ export default function EjerciciosBrowser({
     equipamiento,
     tipoEjercicio,
     tipoResistencia,
+    movementType,
+    skill,
+    muscleGroup,
     objetivo,
     dificultad,
     unilateral,
@@ -236,37 +300,161 @@ export default function EjerciciosBrowser({
         })}
       </div>
 
+      {esCalistenia ? (
+        <div className="flex flex-col gap-3 rounded-2xl border border-zinc-800 bg-zinc-900/20 p-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            Calistenia · Categoría
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => elegirCategoria(ALL)}
+              className={
+                "rounded-full px-3 py-1.5 text-sm transition " +
+                (categoria === ALL
+                  ? "bg-emerald-500 text-zinc-950"
+                  : "border border-zinc-800 text-zinc-400 hover:text-white")
+              }
+            >
+              Todas
+            </button>
+            {categorias.map((c) => (
+              <button
+                key={c}
+                onClick={() => elegirCategoria(c)}
+                className={
+                  "rounded-full px-3 py-1.5 text-sm transition " +
+                  (categoria === c
+                    ? "bg-emerald-500 text-zinc-950"
+                    : "border border-zinc-800 text-zinc-400 hover:text-white")
+                }
+              >
+                {c}
+                <span className="ml-1.5 text-xs opacity-70">
+                  {conteosCat[c] ?? 0}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          {categoria !== ALL && subcategorias.length > 0 ? (
+            <>
+              <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                {categoria} · Subcategoría
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setSubcategoria(ALL)}
+                  className={
+                    "rounded-full px-3 py-1.5 text-xs transition " +
+                    (subcategoria === ALL
+                      ? "bg-white text-zinc-900"
+                      : "border border-zinc-800 text-zinc-400 hover:text-white")
+                  }
+                >
+                  Todas
+                </button>
+                {subcategorias.map((s) => (
+                  <button
+                    key={s}
+                    onClick={() => setSubcategoria(s)}
+                    className={
+                      "rounded-full px-3 py-1.5 text-xs transition " +
+                      (subcategoria === s
+                        ? "bg-white text-zinc-900"
+                        : "border border-zinc-800 text-zinc-400 hover:text-white")
+                    }
+                  >
+                    {s}
+                    <span className="ml-1.5 opacity-70">{conteosSub[s] ?? 0}</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="flex flex-wrap items-center gap-3">
         <TextInput
           value={q}
           onChange={(e) => setQ(e.target.value)}
-          placeholder="Buscar por nombre, músculo o alias…"
+          placeholder="Buscar por nombre, skill, músculo o alias…"
           className="w-full sm:w-72"
         />
 
-        <Select
-          aria-label="Filtrar por categoría"
-          value={categoria}
-          onChange={(e) => setCategoria(e.target.value)}
-          className="w-auto"
-        >
-          <option value={ALL}>Categoría: todas</option>
-          {categorias.map((c) => (
-            <option key={c} value={c}>
-              {c}
-            </option>
-          ))}
-        </Select>
-
-        {subcategorias.length > 0 ? (
+        {!esCalistenia ? (
           <Select
-            aria-label="Filtrar por músculo"
+            aria-label="Filtrar por categoría"
+            value={categoria}
+            onChange={(e) => elegirCategoria(e.target.value)}
+            className="w-auto"
+          >
+            <option value={ALL}>Categoría: todas</option>
+            {categorias.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </Select>
+        ) : null}
+
+        {esCalistenia && subcategorias.length > 0 ? (
+          <Select
+            aria-label="Filtrar por subcategoría"
             value={subcategoria}
             onChange={(e) => setSubcategoria(e.target.value)}
             className="w-auto"
           >
-            <option value={ALL}>Músculo: todos</option>
+            <option value={ALL}>Subcategoría: todas</option>
             {subcategorias.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </Select>
+        ) : null}
+
+        {skills.length > 0 ? (
+          <Select
+            aria-label="Filtrar por skill"
+            value={skill}
+            onChange={(e) => setSkill(e.target.value)}
+            className="w-auto"
+          >
+            <option value={ALL}>Skill: todos</option>
+            {skills.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </Select>
+        ) : null}
+
+        {movementTypes.length > 0 ? (
+          <Select
+            aria-label="Filtrar por tipo de movimiento"
+            value={movementType}
+            onChange={(e) => setMovementType(e.target.value)}
+            className="w-auto"
+          >
+            <option value={ALL}>Tipo: todos</option>
+            {movementTypes.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </Select>
+        ) : null}
+
+        {muscleGroups.length > 0 ? (
+          <Select
+            aria-label="Filtrar por grupo muscular"
+            value={muscleGroup}
+            onChange={(e) => setMuscleGroup(e.target.value)}
+            className="w-auto"
+          >
+            <option value={ALL}>Músculo: todos</option>
+            {muscleGroups.map((c) => (
               <option key={c} value={c}>
                 {c}
               </option>
@@ -290,14 +478,14 @@ export default function EjerciciosBrowser({
           </Select>
         ) : null}
 
-        {tiposEjercicio.length > 0 ? (
+        {tipoEjercicio.length > 0 ? (
           <Select
             aria-label="Filtrar por tipo de ejercicio"
             value={tipoEjercicio}
             onChange={(e) => setTipoEjercicio(e.target.value)}
             className="w-auto"
           >
-            <option value={ALL}>Tipo: todos</option>
+            <option value={ALL}>Tipo ejercicio: todos</option>
             {tiposEjercicio.map((c) => (
               <option key={c} value={c}>
                 {c}
@@ -363,6 +551,23 @@ export default function EjerciciosBrowser({
           <option value="no">Bilateral</option>
         </Select>
 
+        <label className="flex items-center gap-2 text-xs text-zinc-400">
+          <input
+            type="checkbox"
+            checked={mostrarDuplicados}
+            onChange={(e) => setMostrarDuplicados(e.target.checked)}
+          />
+          Mostrar duplicados
+        </label>
+        <label className="flex items-center gap-2 text-xs text-zinc-400">
+          <input
+            type="checkbox"
+            checked={mostrarRevisar}
+            onChange={(e) => setMostrarRevisar(e.target.checked)}
+          />
+          Mostrar a revisar
+        </label>
+
         <p className="ml-auto text-sm text-zinc-500">
           {list.length} ejercicio{list.length === 1 ? "" : "s"}
         </p>
@@ -382,20 +587,46 @@ export default function EjerciciosBrowser({
                 className="flex items-start justify-between gap-4 px-6 py-4"
               >
                 <div className="min-w-0">
-                  <p className="font-semibold">{ex.nombre}</p>
+                  <p className="font-semibold">
+                    {ex.nombre}
+                    {ex.estado_clasificacion === "revisar" ? (
+                      <span className="ml-2 rounded-full bg-amber-500/20 px-2 py-0.5 align-middle text-[10px] font-semibold text-amber-300">
+                        A revisar
+                      </span>
+                    ) : null}
+                    {ex.duplicado_de ? (
+                      <span className="ml-2 rounded-full bg-zinc-700/50 px-2 py-0.5 align-middle text-[10px] font-semibold text-zinc-300">
+                        Duplicado
+                      </span>
+                    ) : null}
+                  </p>
                   {ex.nombre_en ? (
                     <p className="text-xs italic text-zinc-600">{ex.nombre_en}</p>
                   ) : null}
                   <p className="mt-0.5 text-sm text-zinc-500">
                     {ex.categoria}
-                    {ex.subcategoria ? ` · ${ex.subcategoria}` : ""} ·{" "}
+                    {ex.subcategoria ? ` › ${ex.subcategoria}` : ""} ·{" "}
                     {ex.dificultad}
-                    {ex.tipo_ejercicio ? ` · ${ex.tipo_ejercicio}` : ""}
                   </p>
                   <div className="mt-1.5 flex flex-wrap gap-1.5 text-[11px]">
                     {ex.disciplina ? (
                       <span className="rounded-full bg-white/10 px-2 py-0.5 text-zinc-300">
                         {ex.disciplina}
+                      </span>
+                    ) : null}
+                    {ex.skill ? (
+                      <span className="rounded-full bg-emerald-500/15 px-2 py-0.5 text-emerald-300">
+                        Skill: {ex.skill}
+                      </span>
+                    ) : null}
+                    {ex.movement_type ? (
+                      <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-zinc-400">
+                        {ex.movement_type}
+                      </span>
+                    ) : null}
+                    {ex.muscle_group ? (
+                      <span className="rounded-full bg-zinc-800 px-2 py-0.5 text-zinc-400">
+                        {ex.muscle_group}
                       </span>
                     ) : null}
                     {ex.tipo_resistencia ? (

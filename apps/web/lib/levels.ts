@@ -42,17 +42,117 @@ export function labelSesion(dia: number | null, nombre: string | null): string {
 }
 
 export const EJERCICIO_CATEGORIAS_CALISTENIA = [
-  "Tirón",
   "Empuje",
-  "Piernas",
+  "Tirón",
   "Core",
+  "Piernas",
+  "Skills",
+  "Dinámicos",
+  "Agarre",
+];
+
+export const SUBCATEGORIAS_CALISTENIA: Record<string, string[]> = {
+  Empuje: [
+    "Empuje horizontal",
+    "Empuje vertical",
+    "Fondos",
+    "Planche",
+    "Estáticos avanzados",
+    "Accesorios de empuje",
+  ],
+  Tirón: [
+    "Dominadas",
+    "Remos",
+    "Front Lever",
+    "Back Lever",
+    "Fuerza de tirón",
+    "Bíceps / accesorios",
+  ],
+  Core: [
+    "Flexión de tronco",
+    "Elevación de piernas",
+    "Anti-extensión",
+    "Anti-rotación",
+    "Rotación",
+    "Compresión",
+    "Estabilidad",
+  ],
+  Piernas: [
+    "Dominante de rodilla",
+    "Dominante de cadera",
+    "Isquiotibiales",
+    "Pantorrillas",
+    "Potencia",
+  ],
+  Skills: ["Handstand", "Human Flag", "Press to Handstand", "Otros"],
+  Dinámicos: ["Muscle Up", "Transiciones", "Kips / Swings", "Freestyle"],
+  Agarre: ["Colgados", "Fuerza de dedos", "Muñeca / antebrazo"],
+};
+
+export function subcategoriasDe(
+  disciplina: string | null | undefined,
+  categoria: string | null | undefined
+): string[] {
+  if (disciplina !== "Calistenia" || !categoria) return [];
+  return SUBCATEGORIAS_CALISTENIA[categoria] ?? [];
+}
+
+export const MOVEMENT_TYPES = [
+  "Isométrico",
+  "Dinámico",
+  "Fuerza",
+  "Explosivo",
+  "Excéntrico",
+  "Técnica",
+  "Movilidad",
+  "Accesorio",
+];
+
+export const SKILLS_CALISTENIA = [
   "Planche",
   "Front Lever",
-  "Muscle Up",
+  "Back Lever",
   "Handstand",
-  "Street Lifting",
-  "Movilidad",
-  "Prehabilitación",
+  "Human Flag",
+  "Muscle Up",
+  "L-Sit",
+  "V-Sit",
+  "I-Sit",
+  "Maltese",
+  "Victorian",
+  "Iron Cross",
+  "Inverted Cross",
+  "Hefesto",
+  "SAT",
+  "Mana",
+  "Azarian",
+  "Pelicano",
+  "Prayer",
+  "Bruja/Iguana",
+  "Dragon Press",
+  "Cross Press",
+  "Impossible Dip",
+  "Dragon Flag",
+  "Skin the Cat",
+  "Turtle",
+  "Pistol",
+  "90 Degree",
+  "Ángel",
+];
+
+export const MUSCLE_GROUPS = [
+  "Pecho",
+  "Espalda",
+  "Hombros",
+  "Tríceps",
+  "Bíceps",
+  "Antebrazo",
+  "Core",
+  "Cuádriceps",
+  "Isquiotibiales",
+  "Glúteos",
+  "Pantorrillas",
+  "Cuerpo completo",
 ];
 
 export const EJERCICIO_CATEGORIAS_MUSCULACION = [

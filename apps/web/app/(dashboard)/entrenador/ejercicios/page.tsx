@@ -5,7 +5,7 @@ import EjerciciosBrowser, { type Exercise } from "@/components/ejercicios-browse
 export const dynamic = "force-dynamic";
 
 const CAMPOS_COMPLETOS =
-  "id, nombre, nombre_en, aliases, categoria, subcategoria, dificultad, tipo, disciplina, tipo_ejercicio, tipo_resistencia, equipamiento, patron, musculos_primarios, musculos_secundarios, objetivo, unilateral, video_url";
+  "id, nombre, nombre_en, aliases, categoria, subcategoria, dificultad, tipo, disciplina, tipo_ejercicio, tipo_resistencia, equipamiento, patron, musculos_primarios, musculos_secundarios, objetivo, unilateral, movement_type, skill, muscle_group, estado_clasificacion, duplicado_de, video_url";
 
 const CAMPOS_BASE =
   "id, nombre, categoria, dificultad, tipo, video_url";

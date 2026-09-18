@@ -16,7 +16,10 @@ import {
   DISCIPLINAS,
   LEVELS,
   MOVIMIENTOS,
+  MOVEMENT_TYPES,
+  MUSCLE_GROUPS,
   OBJETIVOS,
+  SKILLS_CALISTENIA,
   TIPOS_EJERCICIO,
   TIPOS_RESISTENCIA,
   categoriasDe,
@@ -52,6 +55,9 @@ export default function NuevoEjercicioPage() {
     unilateral: false,
     cadena_cinetica: "Abierta",
     objetivo: "Hipertrofia",
+    movement_type: "Dinámico",
+    skill: "",
+    muscle_group: "",
     series_sugeridas: "4",
     reps_sugeridas: "8-12",
     descanso_seg: "120",
@@ -102,6 +108,9 @@ export default function NuevoEjercicioPage() {
       unilateral: form.unilateral,
       cadena_cinetica: form.cadena_cinetica,
       objetivo: form.objetivo,
+      movement_type: form.movement_type,
+      skill: form.skill || null,
+      muscle_group: form.muscle_group || null,
       series_sugeridas: form.series_sugeridas ? Number(form.series_sugeridas) : null,
       reps_sugeridas: form.reps_sugeridas.trim() || null,
       descanso_seg: form.descanso_seg ? Number(form.descanso_seg) : null,
@@ -300,6 +309,44 @@ export default function NuevoEjercicioPage() {
             >
               <option value="no">Bilateral</option>
               <option value="si">Unilateral</option>
+            </Select>
+          </Field>
+        </div>
+
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+          <Field label="Tipo de movimiento" hint="Isométrico, dinámico, explosivo…">
+            <Select
+              value={form.movement_type}
+              onChange={(e) => set("movement_type", e.target.value)}
+            >
+              {MOVEMENT_TYPES.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Skill" hint="Planche, Front Lever, Handstand…">
+            <Select value={form.skill} onChange={(e) => set("skill", e.target.value)}>
+              <option value="">Sin skill</option>
+              {SKILLS_CALISTENIA.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </Select>
+          </Field>
+          <Field label="Grupo muscular principal">
+            <Select
+              value={form.muscle_group}
+              onChange={(e) => set("muscle_group", e.target.value)}
+            >
+              <option value="">Sin definir</option>
+              {MUSCLE_GROUPS.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
             </Select>
           </Field>
         </div>
