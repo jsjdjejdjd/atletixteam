@@ -59,6 +59,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       lang="es"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+      <head>
+        <meta name="atletix-build" content="ea248c0" />
+      </head>
       <body className="min-h-full flex flex-col bg-zinc-950 text-zinc-100">
         <PwaRegister />
         {children}
