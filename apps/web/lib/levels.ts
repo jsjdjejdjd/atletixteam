@@ -89,11 +89,80 @@ export const SUBCATEGORIAS_CALISTENIA: Record<string, string[]> = {
   Agarre: ["Colgados", "Fuerza de dedos", "Muñeca / antebrazo"],
 };
 
+export const EJERCICIO_CATEGORIAS_ACCESORIOS = [
+  "Empuje",
+  "Tirón",
+  "Hombros",
+  "Bíceps",
+  "Tríceps",
+  "Antebrazos",
+  "Core",
+  "Piernas",
+  "Agarre",
+  "Prehabilitación",
+  "Cuerpo completo",
+  "Movilidad",
+];
+
+export const SUBCATEGORIAS_ACCESORIOS: Record<string, string[]> = {
+  Empuje: ["Empuje horizontal", "Empuje vertical", "Flexiones", "Fondos", "Planche"],
+  Tirón: ["Dominadas", "Remos", "Front lever", "Back lever", "Accesorios de tirón"],
+  Hombros: ["Deltoides anterior", "Deltoides", "Deltoides posterior", "Press de hombros", "Manguito rotador"],
+  Bíceps: ["Curl bíceps", "Curl bíceps (cabeza larga)", "Braquial / braquiorradial"],
+  Tríceps: ["Extensiones", "Extensiones (cabeza larga)", "Fondos cerrados"],
+  Antebrazos: [
+    "Flexores de muñeca",
+    "Extensores de muñeca",
+    "Braquiorradial",
+    "Braquial y braquiorradial",
+    "Flexores de los dedos",
+    "Pronadores y supinadores",
+    "Flexores y extensores",
+  ],
+  Core: [
+    "Recto abdominal (porción inferior)",
+    "Recto abdominal (flexión de tronco)",
+    "Anti-extensión",
+    "Anti-rotación",
+    "Oblicuos (rotación)",
+  ],
+  Piernas: [
+    "Cuádriceps",
+    "Cuádriceps + glúteo",
+    "Cuádriceps + glúteo (unilateral)",
+    "Cuádriceps (recto femoral)",
+    "Isquiotibiales",
+    "Isquiotibiales (unilateral)",
+    "Isquiotibiales (excéntrico)",
+    "Glúteo mayor",
+    "Glúteo mayor (unilateral)",
+    "Cadena posterior",
+    "Gastrocnemio",
+    "Gastrocnemio y sóleo",
+    "Gastrocnemio y sóleo (unilateral)",
+  ],
+  Agarre: ["Agarre de barra", "Agarre unilateral", "Agarre de pinza", "Agarre de anillas"],
+  Prehabilitación: [
+    "Escápula y manguito rotador",
+    "Manguito rotador",
+    "Trapecio inferior",
+    "Trapecio inferior y medio",
+    "Serrato anterior y escápula",
+    "Glúteo medio",
+    "Aductores y core",
+    "Tibial anterior",
+  ],
+  "Cuerpo completo": ["Potencia y empuje", "Potencia de cadera", "Potencia unilateral", "Resistencia y potencia", "Acarreo y core"],
+  Movilidad: ["Movilidad de hombro", "Movilidad de cadera", "Movilidad de cadera y tobillo", "Movilidad torácica"],
+};
+
 export function subcategoriasDe(
   disciplina: string | null | undefined,
   categoria: string | null | undefined
 ): string[] {
-  if (disciplina !== "Calistenia" || !categoria) return [];
+  if (!categoria) return [];
+  if (disciplina === "Accesorios Calistenia") return SUBCATEGORIAS_ACCESORIOS[categoria] ?? [];
+  if (disciplina !== "Calistenia") return [];
   return SUBCATEGORIAS_CALISTENIA[categoria] ?? [];
 }
 
@@ -179,13 +248,13 @@ export const EJERCICIO_CATEGORIAS = Array.from(
   new Set([...EJERCICIO_CATEGORIAS_CALISTENIA, ...EJERCICIO_CATEGORIAS_MUSCULACION])
 );
 
-export const DISCIPLINAS = ["Calistenia", "Musculación"] as const;
+export const DISCIPLINAS = ["Calistenia", "Musculación", "Accesorios Calistenia"] as const;
 export type Disciplina = (typeof DISCIPLINAS)[number];
 
 export function categoriasDe(disciplina: string | null | undefined): string[] {
-  return disciplina === "Musculación"
-    ? EJERCICIO_CATEGORIAS_MUSCULACION
-    : EJERCICIO_CATEGORIAS_CALISTENIA;
+  if (disciplina === "Musculación") return EJERCICIO_CATEGORIAS_MUSCULACION;
+  if (disciplina === "Accesorios Calistenia") return EJERCICIO_CATEGORIAS_ACCESORIOS;
+  return EJERCICIO_CATEGORIAS_CALISTENIA;
 }
 
 export const TIPOS_EJERCICIO = [

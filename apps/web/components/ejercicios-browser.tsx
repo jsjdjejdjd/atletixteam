@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { DISCIPLINAS } from "@/lib/levels";
 import {
   Button,
   EmptyState,
@@ -40,7 +41,7 @@ export type Exercise = {
 const ALL = "todas";
 const SIN_DISCIPLINA = "Sin clasificar";
 
-type Pestaña = "todas" | "Calistenia" | "Musculación" | "Sin clasificar";
+type Pestaña = "todas" | "Sin clasificar" | (typeof DISCIPLINAS)[number];
 
 function disciplinaDe(e: Exercise): string {
   return e.disciplina ?? SIN_DISCIPLINA;
@@ -80,15 +81,13 @@ export default function EjerciciosBrowser({
   const [editSaving, setEditSaving] = useState(false);
   const [editError, setEditError] = useState<string | null>(null);
 
-  const esCalistenia = pestana === "Calistenia";
+  const esJerarquica =
+    pestana === "Calistenia" || pestana === "Accesorios Calistenia";
 
   const conteos = useMemo(() => {
-    const c: Record<string, number> = {
-      todas: exercises.length,
-      Calistenia: 0,
-      Musculación: 0,
-      "Sin clasificar": 0,
-    };
+    const c: Record<string, number> = { todas: exercises.length };
+    for (const d of DISCIPLINAS) c[d] = 0;
+    c[SIN_DISCIPLINA] = 0;
     for (const e of exercises) {
       const d = disciplinaDe(e);
       c[d] = (c[d] ?? 0) + 1;
@@ -267,7 +266,7 @@ export default function EjerciciosBrowser({
     router.refresh();
   }
 
-  const pestanas: Pestaña[] = ["Musculación", "Calistenia", "Sin clasificar", "todas"];
+  const pestanas: Pestaña[] = [...DISCIPLINAS, "Sin clasificar", "todas"];
 
   return (
     <div className="flex flex-col gap-5">
@@ -300,10 +299,10 @@ export default function EjerciciosBrowser({
         })}
       </div>
 
-      {esCalistenia ? (
+      {esJerarquica ? (
         <div className="flex flex-col gap-3 rounded-2xl border border-zinc-800 bg-zinc-900/20 p-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-            Calistenia · Categoría
+            {pestana} · Categoría
           </p>
           <div className="flex flex-wrap gap-2">
             <button
@@ -382,7 +381,7 @@ export default function EjerciciosBrowser({
           className="w-full sm:w-72"
         />
 
-        {!esCalistenia ? (
+        {!esJerarquica ? (
           <Select
             aria-label="Filtrar por categoría"
             value={categoria}
@@ -398,7 +397,7 @@ export default function EjerciciosBrowser({
           </Select>
         ) : null}
 
-        {esCalistenia && subcategorias.length > 0 ? (
+        {esJerarquica && subcategorias.length > 0 ? (
           <Select
             aria-label="Filtrar por subcategoría"
             value={subcategoria}
