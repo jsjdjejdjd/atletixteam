@@ -59,7 +59,7 @@ where disciplina = 'Calistenia' and categoria_anterior is null;
 
 -- 4) MAPA DE RECLASIFICACION
 drop table if exists _mapa_cal;
-create temporary table _mapa_cal (
+create table _mapa_cal (
   nombre text primary key, categoria text, subcategoria text, movement_type text,
   skill text, muscle_group text, objetivo text, estado text, duplicado_de text, progresion_de text
 );
