@@ -85,6 +85,10 @@ export function LiveWorkout({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [typing, setTyping] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
+
+  const draftKey = `atletix:live:${athleteId}:${workoutId}`;
+  const hoy = new Date().toISOString().slice(0, 10);
 
   const [items, setItems] = useState<Exercise[]>(exercises);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -136,6 +140,47 @@ export function LiveWorkout({
     }
     return init;
   });
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(draftKey);
+      if (raw) {
+        const parsed = JSON.parse(raw) as {
+          fecha?: string;
+          data?: Record<string, { rows: Row[]; comentario: string }>;
+        };
+        if (parsed?.fecha === hoy && parsed.data) {
+          const guardado = parsed.data;
+          // Restauramos el borrador una sola vez al montar (evita perder el
+          // registro si el navegador descarta la pestaña).
+          // eslint-disable-next-line react-hooks/set-state-in-effect
+          setData((prev) => {
+            const next = { ...prev };
+            for (const [k, v] of Object.entries(guardado)) {
+              if (v && Array.isArray(v.rows)) {
+                next[k] = { rows: v.rows, comentario: v.comentario ?? "" };
+              }
+            }
+            return next;
+          });
+        } else {
+          localStorage.removeItem(draftKey);
+        }
+      }
+    } catch {
+      /* sin borrador */
+    }
+    setHydrated(true);
+  }, [draftKey, hoy]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    try {
+      localStorage.setItem(draftKey, JSON.stringify({ fecha: hoy, data }));
+    } catch {
+      /* almacenamiento lleno o bloqueado */
+    }
+  }, [data, draftKey, hoy, hydrated]);
 
   function setRow(exId: string, idx: number, patch: Partial<Row>) {
     setData((d) => {
@@ -336,7 +381,6 @@ export function LiveWorkout({
     setSaving(true);
     setError(null);
 
-    const hoy = new Date().toISOString().slice(0, 10);
     const ids = items.map((e) => e.id);
 
     await supabase
@@ -380,6 +424,11 @@ export function LiveWorkout({
 
     setSaving(false);
     setSaved(true);
+    try {
+      localStorage.removeItem(draftKey);
+    } catch {
+      /* nada */
+    }
     setTimeout(() => setSaved(false), 4000);
     router.refresh();
   }
