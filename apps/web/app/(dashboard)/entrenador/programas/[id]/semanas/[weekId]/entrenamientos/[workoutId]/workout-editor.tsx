@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Button, Field, SectionCard, Select } from "@/components/ui";
+import { Button, Field, SectionCard } from "@/components/ui";
 
 type ExerciseItem = {
   id: string;
@@ -141,6 +141,7 @@ function AddExerciseForm({
 }) {
   const supabase = createClient();
   const [exerciseId, setExerciseId] = useState("");
+  const [busqueda, setBusqueda] = useState("");
   const [series, setSeries] = useState("3");
   const [repeticiones, setRepeticiones] = useState("");
   const [rir, setRir] = useState("");
@@ -148,6 +149,18 @@ function AddExerciseForm({
   const [peso, setPeso] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  const seleccionado = library.find((l) => l.id === exerciseId) ?? null;
+  const q = busqueda.trim().toLowerCase();
+  const filtrados = library
+    .filter(
+      (l) =>
+        !q ||
+        l.nombre.toLowerCase().includes(q) ||
+        l.categoria.toLowerCase().includes(q)
+    )
+    .sort((a, b) => a.nombre.localeCompare(b.nombre))
+    .slice(0, 80);
 
   async function handleAdd() {
     if (!exerciseId) {
@@ -186,23 +199,67 @@ function AddExerciseForm({
     <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6">
       <h2 className="text-lg font-bold">Agregar ejercicio</h2>
       <p className="mt-1 text-sm text-zinc-500">
-        Elegí de la biblioteca y cargá los parámetros de la sesión.
+        Buscá el ejercicio en la biblioteca y cargá los parámetros de la sesión.
       </p>
 
       <div className="mt-4 flex flex-col gap-4">
-        <Field label="Ejercicio *">
-          <Select
-            value={exerciseId}
-            onChange={(e) => setExerciseId(e.target.value)}
-          >
-            <option value="">Seleccionar ejercicio…</option>
-            {library.map((l) => (
-              <option key={l.id} value={l.id}>
-                {l.nombre} ({l.categoria})
-              </option>
-            ))}
-          </Select>
+        <Field label="Buscar ejercicio *">
+          <input
+            type="text"
+            value={busqueda}
+            onChange={(e) => setBusqueda(e.target.value)}
+            placeholder="Escribí para buscar (ej: plancha, dominada, fondos…)"
+            className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-2.5 text-sm text-zinc-100 outline-none transition focus:border-zinc-500"
+          />
         </Field>
+
+        {seleccionado ? (
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-emerald-800/70 bg-emerald-950/20 px-4 py-3">
+            <p className="text-sm font-semibold text-emerald-200">
+              {seleccionado.nombre}
+              <span className="ml-2 text-xs font-normal text-emerald-300/70">
+                ({seleccionado.categoria})
+              </span>
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setExerciseId("");
+                setBusqueda("");
+              }}
+              className="rounded-lg border border-zinc-700 px-2 py-1 text-xs text-zinc-300 transition hover:border-zinc-500"
+            >
+              Quitar
+            </button>
+          </div>
+        ) : (
+          <div className="max-h-64 overflow-y-auto rounded-lg border border-zinc-800 bg-zinc-950/60">
+            {filtrados.length === 0 ? (
+              <p className="px-4 py-3 text-sm text-zinc-500">
+                No encontré ejercicios con ese nombre.
+              </p>
+            ) : (
+              filtrados.map((l) => (
+                <button
+                  key={l.id}
+                  type="button"
+                  onClick={() => {
+                    setExerciseId(l.id);
+                    setBusqueda("");
+                  }}
+                  className="flex w-full items-center justify-between gap-3 border-b border-zinc-800/70 px-4 py-2.5 text-left transition last:border-b-0 hover:bg-zinc-900"
+                >
+                  <span className="text-sm font-medium text-zinc-100">
+                    {l.nombre}
+                  </span>
+                  <span className="shrink-0 text-xs text-zinc-500">
+                    {l.categoria}
+                  </span>
+                </button>
+              ))
+            )}
+          </div>
+        )}
 
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
           <Field label="Series">
