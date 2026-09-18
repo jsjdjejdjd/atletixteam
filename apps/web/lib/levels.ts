@@ -41,7 +41,7 @@ export function labelSesion(dia: number | null, nombre: string | null): string {
   return `${base} · ${n}`;
 }
 
-export const EJERCICIO_CATEGORIAS = [
+export const EJERCICIO_CATEGORIAS_CALISTENIA = [
   "Tirón",
   "Empuje",
   "Piernas",
@@ -54,3 +54,103 @@ export const EJERCICIO_CATEGORIAS = [
   "Movilidad",
   "Prehabilitación",
 ];
+
+export const EJERCICIO_CATEGORIAS_MUSCULACION = [
+  "Pecho",
+  "Espalda",
+  "Hombros",
+  "Bíceps",
+  "Tríceps",
+  "Antebrazos",
+  "Cuádriceps",
+  "Isquiotibiales",
+  "Glúteos",
+  "Aductores",
+  "Abductores",
+  "Pantorrillas",
+  "Tibial anterior",
+  "Cuerpo completo",
+  "Accesorios",
+  "Core",
+  "Prehabilitación",
+];
+
+export const EJERCICIO_CATEGORIAS = Array.from(
+  new Set([...EJERCICIO_CATEGORIAS_CALISTENIA, ...EJERCICIO_CATEGORIAS_MUSCULACION])
+);
+
+export const DISCIPLINAS = ["Calistenia", "Musculación"] as const;
+export type Disciplina = (typeof DISCIPLINAS)[number];
+
+export function categoriasDe(disciplina: string | null | undefined): string[] {
+  return disciplina === "Musculación"
+    ? EJERCICIO_CATEGORIAS_MUSCULACION
+    : EJERCICIO_CATEGORIAS_CALISTENIA;
+}
+
+export const TIPOS_EJERCICIO = [
+  "Compuesto",
+  "Aislado",
+  "Accesorio",
+  "Estabilidad",
+  "Potencia",
+  "Movilidad",
+] as const;
+
+export const TIPOS_RESISTENCIA = [
+  "Peso corporal",
+  "Barra",
+  "Mancuernas",
+  "Kettlebell",
+  "Máquina",
+  "Polea",
+  "Banda",
+  "Mixto",
+] as const;
+
+export const CADENAS_CINETICAS = ["Abierta", "Cerrada"] as const;
+
+export const OBJETIVOS = [
+  "Fuerza",
+  "Hipertrofia",
+  "Resistencia",
+  "Potencia",
+  "Técnica",
+  "Control corporal",
+] as const;
+
+export const MOVIMIENTOS = [
+  "Tirón vertical",
+  "Tirón horizontal",
+  "Empuje vertical",
+  "Empuje horizontal",
+  "Elevación",
+  "Aducción",
+  "Abducción",
+  "Rotación interna",
+  "Rotación externa",
+  "Flexión de codo",
+  "Extensión de codo",
+  "Flexión de hombro",
+  "Trabajo de agarre",
+  "Elevación escapular",
+  "Dominante de rodilla",
+  "Dominante de cadera",
+  "Bisagra de cadera",
+  "Extensión de cadera",
+  "Flexión de rodilla",
+  "Aducción de cadera",
+  "Abducción de cadera",
+  "Flexión plantar",
+  "Dorsiflexión",
+  "Flexión de tronco",
+  "Anti-extensión",
+  "Rotación",
+  "Anti-rotación",
+  "Flexión lateral",
+  "Anti-flexión lateral",
+  "Estabilidad lumbo-pélvica",
+  "Acarreo (carry)",
+  "Cuerpo completo",
+  "Potencia",
+] as const;

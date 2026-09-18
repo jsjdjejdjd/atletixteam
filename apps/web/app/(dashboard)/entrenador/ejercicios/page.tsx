@@ -1,17 +1,14 @@
 import { requireProfile } from "@/lib/auth";
 import { LinkButton, EmptyState } from "@/components/ui";
-import EjerciciosBrowser from "@/components/ejercicios-browser";
+import EjerciciosBrowser, { type Exercise } from "@/components/ejercicios-browser";
 
 export const dynamic = "force-dynamic";
 
-type Exercise = {
-  id: string;
-  nombre: string;
-  categoria: string;
-  dificultad: string;
-  tipo: string | null;
-  video_url: string | null;
-};
+const CAMPOS_COMPLETOS =
+  "id, nombre, nombre_en, aliases, categoria, subcategoria, dificultad, tipo, disciplina, tipo_ejercicio, tipo_resistencia, equipamiento, patron, musculos_primarios, musculos_secundarios, objetivo, unilateral, video_url";
+
+const CAMPOS_BASE =
+  "id, nombre, categoria, dificultad, tipo, video_url";
 
 export default async function EjerciciosPage() {
   const { supabase } = await requireProfile();
@@ -19,7 +16,7 @@ export default async function EjerciciosPage() {
   let data: Exercise[] | null = (
     await supabase
       .from("exercises")
-      .select("id, nombre, categoria, dificultad, tipo, video_url")
+      .select(CAMPOS_COMPLETOS)
       .order("nombre", { ascending: true })
   ).data as Exercise[] | null;
 
@@ -27,7 +24,7 @@ export default async function EjerciciosPage() {
     data = (
       await supabase
         .from("exercises")
-        .select("id, nombre, categoria, dificultad, video_url")
+        .select(CAMPOS_BASE)
         .order("nombre", { ascending: true })
     ).data as Exercise[] | null;
   }
@@ -42,6 +39,10 @@ export default async function EjerciciosPage() {
           <h1 className="mt-2 text-3xl font-black tracking-tight">
             Biblioteca de ejercicios
           </h1>
+          <p className="mt-1 text-sm text-zinc-400">
+            Calistenia y musculación viven en la misma base pero separadas por
+            disciplina. Usá las pestañas para no mezclarlas.
+          </p>
         </div>
         <LinkButton href="/entrenador/ejercicios/nuevo" variant="primary">
           + Nuevo ejercicio

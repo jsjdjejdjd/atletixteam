@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button, Field, Select, TextInput } from "@/components/ui";
-import { LEVELS, EJERCICIO_CATEGORIAS } from "@/lib/levels";
+import { LEVELS, DISCIPLINAS, categoriasDe } from "@/lib/levels";
 
 type Row = {
   id: string;
@@ -67,13 +67,20 @@ export function SesionEditor({
     router.refresh();
   }
 
-  async function handleCreateNew(name: string, categoria: string, dificultad: string) {
+  async function handleCreateNew(
+    name: string,
+    disciplina: string,
+    categoria: string,
+    dificultad: string
+  ) {
     setError(null);
     const { data: creado, error: insErr } = await supabase
       .from("exercises")
       .insert({
         nombre: name.trim(),
+        disciplina,
         categoria,
+        tipo: disciplina,
         dificultad,
         activo: true,
       })
@@ -380,9 +387,15 @@ function NuevoEjercicioForm({
   onSave,
 }: {
   onCancel: () => void;
-  onSave: (nombre: string, categoria: string, dificultad: string) => Promise<void>;
+  onSave: (
+    nombre: string,
+    disciplina: string,
+    categoria: string,
+    dificultad: string
+  ) => Promise<void>;
 }) {
   const [nombre, setNombre] = useState("");
+  const [disciplina, setDisciplina] = useState("Calistenia");
   const [categoria, setCategoria] = useState("Planche");
   const [dificultad, setDificultad] = useState("Avanzado");
   const [loading, setLoading] = useState(false);
@@ -396,7 +409,7 @@ function NuevoEjercicioForm({
       return;
     }
     setLoading(true);
-    await onSave(nombre, categoria, dificultad);
+    await onSave(nombre, disciplina, categoria, dificultad);
     setLoading(false);
   }
 
@@ -419,9 +432,25 @@ function NuevoEjercicioForm({
           />
         </Field>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Field label="Disciplina">
+            <Select
+              value={disciplina}
+              onChange={(e) => {
+                const d = e.target.value;
+                setDisciplina(d);
+                setCategoria(categoriasDe(d)[0]);
+              }}
+            >
+              {DISCIPLINAS.map((d) => (
+                <option key={d} value={d}>
+                  {d}
+                </option>
+              ))}
+            </Select>
+          </Field>
           <Field label="Categoría">
             <Select value={categoria} onChange={(e) => setCategoria(e.target.value)}>
-              {EJERCICIO_CATEGORIAS.map((c) => (
+              {categoriasDe(disciplina).map((c) => (
                 <option key={c} value={c}>
                   {c}
                 </option>
