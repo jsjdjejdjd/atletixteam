@@ -32,19 +32,27 @@ create index if not exists idx_workout_combo_logs_workout
 
 alter table public.workout_combo_logs enable row level security;
 
+drop policy if exists "workout_combo_logs_select_own_or_admin"
+  on public.workout_combo_logs;
 create policy "workout_combo_logs_select_own_or_admin"
   on public.workout_combo_logs for select
   using (athlete_id = auth.uid() or public.is_admin());
 
+drop policy if exists "workout_combo_logs_insert_own_or_admin"
+  on public.workout_combo_logs;
 create policy "workout_combo_logs_insert_own_or_admin"
   on public.workout_combo_logs for insert
   with check (athlete_id = auth.uid() or public.is_admin());
 
+drop policy if exists "workout_combo_logs_update_own_or_admin"
+  on public.workout_combo_logs;
 create policy "workout_combo_logs_update_own_or_admin"
   on public.workout_combo_logs for update
   using (athlete_id = auth.uid() or public.is_admin())
   with check (athlete_id = auth.uid() or public.is_admin());
 
+drop policy if exists "workout_combo_logs_delete_own_or_admin"
+  on public.workout_combo_logs;
 create policy "workout_combo_logs_delete_own_or_admin"
   on public.workout_combo_logs for delete
   using (athlete_id = auth.uid() or public.is_admin());
