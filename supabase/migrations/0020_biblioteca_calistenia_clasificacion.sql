@@ -50,7 +50,7 @@ alter table public.exercises add constraint exercises_categoria_check
 
 alter table public.exercises drop constraint if exists exercises_objetivo_check;
 alter table public.exercises add constraint exercises_objetivo_check
-  check (objetivo in ('Fuerza', 'Hipertrofia', 'Resistencia', 'Potencia', 'Técnica', 'Control corporal', 'Skill'));
+  check (objetivo in ('Fuerza', 'Hipertrofia', 'Resistencia', 'Potencia', 'Técnica', 'Control corporal', 'Skill', 'Movilidad'));
 
 -- 3) BACKUP de la categoria vieja (solo Calistenia, sin pisar si ya se corrio)
 update public.exercises
