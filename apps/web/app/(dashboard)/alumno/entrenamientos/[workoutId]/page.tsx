@@ -4,6 +4,8 @@ import { LiveWorkout } from "./live-workout";
 
 export const dynamic = "force-dynamic";
 
+const DRAFT_MAX_AGE_MS = 3 * 24 * 60 * 60 * 1000;
+
 type We = {
   id: string;
   athlete_id: string | null;
@@ -129,6 +131,50 @@ export default async function EntrenamientoAlumnoPage({
     }
   }
 
+  const { data: draftRow } = await supabase
+    .from("workout_drafts")
+    .select("data, updated_at")
+    .eq("athlete_id", user.id)
+    .eq("workout_id", workoutId)
+    .maybeSingle();
+
+  let draft: {
+    data: Record<
+      string,
+      {
+        rows: {
+          done: boolean;
+          reps: string;
+          peso: string;
+          rir: string;
+          descanso: string;
+        }[];
+        comentario: string;
+      }
+    >;
+    updatedAt: string;
+  } | null = null;
+
+  if (draftRow) {
+    const updatedAt = draftRow.updated_at as string;
+    const edad = new Date().getTime() - new Date(updatedAt).getTime();
+    if (edad < DRAFT_MAX_AGE_MS) {
+      const data = draftRow.data as {
+        [k: string]: {
+          rows: {
+            done: boolean;
+            reps: string;
+            peso: string;
+            rir: string;
+            descanso: string;
+          }[];
+          comentario: string;
+        };
+      };
+      draft = { data, updatedAt };
+    }
+  }
+
   const exercises = items.map((w) => {
     const info = w.exercise_id ? lib.get(w.exercise_id) : null;
     const log = logMap.get(w.id);
@@ -190,6 +236,7 @@ export default async function EntrenamientoAlumnoPage({
         athleteId={user.id}
         exercises={exercises}
         canEdit
+        draft={draft}
         library={
           (libRes.data ?? []) as {
             id: string;

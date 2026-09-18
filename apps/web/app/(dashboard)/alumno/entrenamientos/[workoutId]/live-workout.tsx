@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button, TextInput } from "@/components/ui";
@@ -38,6 +38,50 @@ type Exercise = {
 
 type Row = { done: boolean; reps: string; peso: string; rir: string; descanso: string };
 
+type DraftData = Record<string, { rows: Row[]; comentario: string }>;
+type Draft = { data: DraftData; updatedAt: string };
+
+const DRAFT_MAX_AGE_MS = 3 * 24 * 60 * 60 * 1000;
+
+function initFromExercises(exercises: Exercise[]): DraftData {
+  const init: DraftData = {};
+  for (const ex of exercises) {
+    const fromLog = (ex.log?.series ?? []).map((s) => ({
+      done: true,
+      reps: s.reps ?? "",
+      peso: s.peso ?? "",
+      rir: s.rir != null ? String(s.rir) : "",
+      descanso: s.descanso != null ? String(s.descanso) : "",
+    }));
+    if (fromLog.length > 0) {
+      init[ex.id] = { rows: fromLog, comentario: ex.log?.comentarios ?? "" };
+    } else {
+      const n = ex.target.series ?? 1;
+      init[ex.id] = {
+        rows: Array.from({ length: n }, () => ({
+          done: false,
+          reps: "",
+          peso: "",
+          rir: "",
+          descanso: "",
+        })),
+        comentario: "",
+      };
+    }
+  }
+  return init;
+}
+
+function aplicarDraft(base: DraftData, draft: DraftData): DraftData {
+  const next = { ...base };
+  for (const [k, v] of Object.entries(draft)) {
+    if (v && Array.isArray(v.rows)) {
+      next[k] = { rows: v.rows, comentario: v.comentario ?? "" };
+    }
+  }
+  return next;
+}
+
 function playBeep() {
   try {
     const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
@@ -70,6 +114,7 @@ export function LiveWorkout({
   athleteId,
   exercises,
   canEdit = false,
+  draft = null,
   library = [],
 }: {
   workoutId: string;
@@ -77,6 +122,7 @@ export function LiveWorkout({
   athleteId: string;
   exercises: Exercise[];
   canEdit?: boolean;
+  draft?: Draft | null;
   library?: { id: string; nombre: string; video_url: string | null }[];
 }) {
   const router = useRouter();
@@ -89,6 +135,11 @@ export function LiveWorkout({
 
   const draftKey = `atletix:live:${athleteId}:${workoutId}`;
   const hoy = new Date().toISOString().slice(0, 10);
+
+  const supabaseRef = useRef(supabase);
+  const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const latestRef = useRef<DraftData>({});
+  const finishedRef = useRef(false);
 
   const [items, setItems] = useState<Exercise[]>(exercises);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -112,58 +163,49 @@ export function LiveWorkout({
     };
   }, []);
 
-  const [data, setData] = useState<Record<string, { rows: Row[]; comentario: string }>>(() => {
-    const init: Record<string, { rows: Row[]; comentario: string }> = {};
-    for (const ex of exercises) {
-      const fromLog = (ex.log?.series ?? []).map((s) => ({
-        done: true,
-        reps: s.reps ?? "",
-        peso: s.peso ?? "",
-        rir: s.rir != null ? String(s.rir) : "",
-        descanso: s.descanso != null ? String(s.descanso) : "",
-      }));
-      if (fromLog.length > 0) {
-        init[ex.id] = { rows: fromLog, comentario: ex.log?.comentarios ?? "" };
-      } else {
-        const n = ex.target.series ?? 1;
-        init[ex.id] = {
-          rows: Array.from({ length: n }, () => ({
-            done: false,
-            reps: "",
-            peso: "",
-            rir: "",
-            descanso: "",
-          })),
-          comentario: "",
-        };
-      }
-    }
-    return init;
+  const [data, setData] = useState<DraftData>(() => {
+    const base = initFromExercises(exercises);
+    return draft ? aplicarDraft(base, draft.data) : base;
   });
+
+  useEffect(() => {
+    latestRef.current = data;
+  }, [data]);
+
+  const guardarEnServidor = useCallback(() => {
+    if (finishedRef.current) return;
+    void supabaseRef.current
+      .from("workout_drafts")
+      .upsert(
+        {
+          athlete_id: athleteId,
+          workout_id: workoutId,
+          data: latestRef.current,
+          fecha: hoy,
+        },
+        { onConflict: "athlete_id,workout_id" }
+      )
+      .then(() => undefined);
+  }, [athleteId, workoutId, hoy]);
 
   useEffect(() => {
     try {
       const raw = localStorage.getItem(draftKey);
       if (raw) {
         const parsed = JSON.parse(raw) as {
-          fecha?: string;
-          data?: Record<string, { rows: Row[]; comentario: string }>;
+          savedAt?: number;
+          data?: DraftData;
         };
-        if (parsed?.fecha === hoy && parsed.data) {
+        const serverTs = draft ? Date.parse(draft.updatedAt) : 0;
+        const localTs = parsed?.savedAt ?? 0;
+        const fresco = Date.now() - localTs < DRAFT_MAX_AGE_MS;
+        if (parsed?.data && fresco && localTs > serverTs) {
           const guardado = parsed.data;
-          // Restauramos el borrador una sola vez al montar (evita perder el
-          // registro si el navegador descarta la pestaña).
+          // Restauramos el borrador una sola vez al montar para no perder
+          // lo cargado si el navegador descarta la pestaña.
           // eslint-disable-next-line react-hooks/set-state-in-effect
-          setData((prev) => {
-            const next = { ...prev };
-            for (const [k, v] of Object.entries(guardado)) {
-              if (v && Array.isArray(v.rows)) {
-                next[k] = { rows: v.rows, comentario: v.comentario ?? "" };
-              }
-            }
-            return next;
-          });
-        } else {
+          setData((prev) => aplicarDraft(prev, guardado));
+        } else if (!fresco) {
           localStorage.removeItem(draftKey);
         }
       }
@@ -171,16 +213,41 @@ export function LiveWorkout({
       /* sin borrador */
     }
     setHydrated(true);
-  }, [draftKey, hoy]);
+  }, [draftKey, draft]);
 
   useEffect(() => {
     if (!hydrated) return;
+    finishedRef.current = false;
     try {
-      localStorage.setItem(draftKey, JSON.stringify({ fecha: hoy, data }));
+      localStorage.setItem(
+        draftKey,
+        JSON.stringify({ savedAt: Date.now(), data })
+      );
     } catch {
       /* almacenamiento lleno o bloqueado */
     }
-  }, [data, draftKey, hoy, hydrated]);
+    if (draftTimer.current) clearTimeout(draftTimer.current);
+    draftTimer.current = setTimeout(guardarEnServidor, 1500);
+  }, [data, draftKey, hydrated, guardarEnServidor]);
+
+  useEffect(() => {
+    const flush = () => {
+      if (draftTimer.current) clearTimeout(draftTimer.current);
+      guardarEnServidor();
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") flush();
+    };
+    window.addEventListener("pagehide", flush);
+    window.addEventListener("beforeunload", flush);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("pagehide", flush);
+      window.removeEventListener("beforeunload", flush);
+      document.removeEventListener("visibilitychange", onVisibility);
+      flush();
+    };
+  }, [guardarEnServidor]);
 
   function setRow(exId: string, idx: number, patch: Partial<Row>) {
     setData((d) => {
@@ -422,6 +489,8 @@ export function LiveWorkout({
       return;
     }
 
+    finishedRef.current = true;
+    if (draftTimer.current) clearTimeout(draftTimer.current);
     setSaving(false);
     setSaved(true);
     try {
@@ -429,6 +498,11 @@ export function LiveWorkout({
     } catch {
       /* nada */
     }
+    await supabase
+      .from("workout_drafts")
+      .delete()
+      .eq("athlete_id", athleteId)
+      .eq("workout_id", workoutId);
     setTimeout(() => setSaved(false), 4000);
     router.refresh();
   }
