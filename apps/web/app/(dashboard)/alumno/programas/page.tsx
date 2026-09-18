@@ -28,19 +28,14 @@ export default async function ProgramasCatalogoPage() {
 
   const trainerId = athlete?.entrenador_id ?? null;
 
-  let catalogQuery = supabase
-    .from("programs")
-    .select("id, nombre, objetivo, descripcion, nivel, categoria, duracion_semanas")
-    .eq("activo", true);
-  if (trainerId) {
-    catalogQuery = catalogQuery.or(
-      `entrenador_id.eq.${trainerId},entrenador_id.is.null`
-    );
-  }
-
-  const { data: programs } = await catalogQuery.order("nombre", {
-    ascending: true,
-  });
+  const { data: programs } = trainerId
+    ? await supabase
+        .from("programs")
+        .select("id, nombre, objetivo, descripcion, nivel, categoria, duracion_semanas")
+        .eq("activo", true)
+        .or(`entrenador_id.eq.${trainerId},entrenador_id.is.null`)
+        .order("nombre", { ascending: true })
+    : { data: [] };
 
   const { data: mine } = await supabase
     .from("programs")
@@ -229,7 +224,11 @@ export default async function ProgramasCatalogoPage() {
       {grupos.length === 0 && familiasAsesorias.length === 0 ? (
         <EmptyState
           title="Todavía no hay programas de tu entrenador"
-          description="Mientras tanto podés crear tu propio programa con los ejercicios de la biblioteca."
+          description={
+            trainerId
+              ? "Cuando tu entrenador publique programas, vas a poder elegirlos acá."
+              : "Cuando tu entrenador te vincule a su cuenta, vas a ver sus programas para elegir."
+          }
         />
       ) : (
         <div className="flex flex-col gap-8">

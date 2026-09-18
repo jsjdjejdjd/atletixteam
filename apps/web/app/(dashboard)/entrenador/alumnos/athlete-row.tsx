@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Select } from "@/components/ui";
+import { UnlinkAthleteButton } from "./unlink-athlete-button";
 
 export function AthleteRow({
   athlete,
@@ -69,6 +70,7 @@ export function AthleteRow({
             ))}
           </Select>
         </label>
+        <UnlinkAthleteButton athleteId={athlete.id} />
       </div>
     </li>
   );

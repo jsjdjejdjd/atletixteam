@@ -12,6 +12,20 @@ export function categoriaLabel(cat: string | null) {
   return "Calistenia General";
 }
 
+export function esProgramaCombo(categoria: string | null, nombre: string | null): boolean {
+  if (categoria === "planche" || categoria === "front_lever") return true;
+  const norm = (nombre ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase();
+  return (
+    norm.includes("planche") ||
+    norm.includes("plancha") ||
+    norm.includes("front lever") ||
+    norm.includes("frontlevel")
+  );
+}
+
 export const FAMILIA_ASESORIAS: Record<
   string,
   { titulo?: string; etiquetaOpcion: "nivel" | "descripcion" }

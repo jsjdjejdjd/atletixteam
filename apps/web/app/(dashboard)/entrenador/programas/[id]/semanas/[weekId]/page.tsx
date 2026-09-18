@@ -2,7 +2,7 @@ import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
 import { EmptyState, SectionCard } from "@/components/ui";
 import { DeleteButton } from "@/components/delete-button";
-import { labelSesion } from "@/lib/levels";
+import { labelSesion, esProgramaCombo } from "@/lib/levels";
 import { WorkoutForm } from "./workout-form";
 
 export const dynamic = "force-dynamic";
@@ -27,12 +27,14 @@ export default async function SemanaPage({
 
   const { data: program } = await supabase
     .from("programs")
-    .select("categoria")
+    .select("categoria, nombre")
     .eq("id", week.program_id)
     .single();
 
-  const esComboAllowed =
-    program?.categoria === "planche" || program?.categoria === "front_lever";
+  const esComboAllowed = esProgramaCombo(
+    program?.categoria ?? null,
+    program?.nombre ?? null
+  );
 
   const { data: workouts } = await supabase
     .from("workouts")

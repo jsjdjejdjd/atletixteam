@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
 import { EmptyState, SectionCard, LinkButton } from "@/components/ui";
-import { categoriaLabel } from "@/lib/levels";
+import { categoriaLabel, esProgramaCombo } from "@/lib/levels";
 import { WeekForm } from "./week-form";
 import { DeleteButton } from "@/components/delete-button";
 
@@ -25,8 +25,7 @@ export default async function ProgramaPage({
     return <p className="text-zinc-500">Programa no encontrado.</p>;
   }
 
-  const esComboAllowed =
-    program.categoria === "planche" || program.categoria === "front_lever";
+  const esComboAllowed = esProgramaCombo(program.categoria, program.nombre);
 
   const { data: weeks } = await supabase
     .from("weeks")
