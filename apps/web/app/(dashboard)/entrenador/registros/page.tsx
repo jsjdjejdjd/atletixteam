@@ -23,15 +23,27 @@ type LogRow = {
 
 function resumenSeries(series: Serie[]) {
   if (series.length === 0) return "Sin series registradas";
-  return series
-    .map((s) => {
-      const partes: string[] = [];
-      if (s.reps) partes.push(`${s.reps} reps`);
-      if (s.peso) partes.push(`${s.peso} kg`);
-      if (s.rir != null) partes.push(`RIR ${s.rir}`);
-      return `S${s.serie}: ${partes.join(" · ") || "—"}`;
-    })
-    .join("   |   ");
+
+  let mejor = series[0];
+  let mejorPuntaje = -1;
+  for (const s of series) {
+    const peso = parseFloat((s.peso ?? "").replace(",", ".")) || 0;
+    const reps = parseFloat((s.reps ?? "").replace(",", ".")) || 0;
+    const puntaje = peso * 1000 + reps;
+    if (puntaje > mejorPuntaje) {
+      mejorPuntaje = puntaje;
+      mejor = s;
+    }
+  }
+
+  const partes: string[] = [];
+  if (mejor.reps) partes.push(`${mejor.reps} reps`);
+  if (mejor.peso) partes.push(`${mejor.peso} kg`);
+  let detalle = partes.join(" × ") || "—";
+  if (mejor.rir != null) detalle += ` · RIR ${mejor.rir}`;
+
+  const n = series.length;
+  return `${n} ${n === 1 ? "serie" : "series"} · mejor: ${detalle}`;
 }
 
 export default async function RegistrosPage({
@@ -40,12 +52,23 @@ export default async function RegistrosPage({
   searchParams: Promise<{ athlete?: string }>;
 }) {
   const { athlete } = await searchParams;
-  const { supabase } = await requireProfile();
+  const { supabase, user } = await requireProfile();
+
+  const { data: athletesRes } = await supabase
+    .from("athletes")
+    .select("user_id")
+    .eq("entrenador_id", user.id);
+
+  const athleteIds = [...new Set((athletesRes ?? []).map((a) => a.user_id))];
 
   let logsQuery = supabase
     .from("workout_logs")
     .select(
       "id, athlete_id, workout_exercise_id, fecha, series_data, comentarios, created_at"
+    )
+    .in(
+      "athlete_id",
+      athleteIds.length ? athleteIds : ["00000000-0000-0000-0000-000000000000"]
     )
     .order("created_at", { ascending: false })
     .limit(150);
@@ -118,8 +141,7 @@ export default async function RegistrosPage({
         <p className="text-sm font-medium text-zinc-500">Panel del entrenador</p>
         <h1 className="mt-2 text-3xl font-black tracking-tight">Registros</h1>
         <p className="mt-1 text-sm text-zinc-400">
-          Lo que cargaron tus alumnos en cada entrenamiento: reps, kg, RIR y
-          comentarios.
+          Lo que cargaron tus alumnos: cuántas series hicieron y su mejor serie.
         </p>
       </section>
 

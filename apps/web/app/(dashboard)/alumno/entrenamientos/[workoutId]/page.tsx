@@ -45,7 +45,7 @@ export default async function EntrenamientoAlumnoPage({
   const [workoutRes, weRes, libRes] = await Promise.all([
     supabase
       .from("workouts")
-      .select("id, nombre, dia, week_id")
+      .select("id, nombre, dia, week_id, es_combo")
       .eq("id", workoutId)
       .single(),
     supabase
@@ -101,35 +101,26 @@ export default async function EntrenamientoAlumnoPage({
     )
   );
 
-  const [logsRes, videosRes] = ids.length
-    ? await Promise.all([
-        supabase
-          .from("workout_logs")
-          .select("id, workout_exercise_id, series_data, comentarios, completado")
-          .eq("athlete_id", user.id)
-          .eq("fecha", hoy)
-          .in("workout_exercise_id", ids),
-        supabase
-          .from("videos")
-          .select("workout_exercise_id, storage_path")
-          .eq("athlete_id", user.id)
-          .in("workout_exercise_id", ids)
-          .order("created_at", { ascending: false }),
-      ])
-    : [
-        { data: [] as { id: string; workout_exercise_id: string; series_data: unknown; comentarios: string | null; completado: boolean }[] },
-        { data: [] as { workout_exercise_id: string | null; storage_path: string }[] },
-      ];
+  const logsRes = ids.length
+    ? await supabase
+        .from("workout_logs")
+        .select("id, workout_exercise_id, series_data, comentarios, completado")
+        .eq("athlete_id", user.id)
+        .eq("fecha", hoy)
+        .in("workout_exercise_id", ids)
+    : {
+        data: [] as {
+          id: string;
+          workout_exercise_id: string;
+          series_data: unknown;
+          comentarios: string | null;
+          completado: boolean;
+        }[],
+      };
 
   const logMap = new Map(
     (logsRes.data ?? []).map((l) => [l.workout_exercise_id, l])
   );
-  const videoMap = new Map<string, string>();
-  for (const v of videosRes.data ?? []) {
-    if (!videoMap.has(v.workout_exercise_id)) {
-      videoMap.set(v.workout_exercise_id, v.storage_path);
-    }
-  }
 
   const { data: draftRow } = await supabase
     .from("workout_drafts")
@@ -178,7 +169,6 @@ export default async function EntrenamientoAlumnoPage({
   const exercises = items.map((w) => {
     const info = w.exercise_id ? lib.get(w.exercise_id) : null;
     const log = logMap.get(w.id);
-    const path = videoMap.get(w.id);
     return {
       id: w.id,
       exercise_id: w.exercise_id,
@@ -205,10 +195,6 @@ export default async function EntrenamientoAlumnoPage({
             comentarios: log.comentarios,
           }
         : null,
-      miVideo:
-        path !== undefined
-          ? supabase.storage.from("videos").getPublicUrl(path).data.publicUrl
-          : null,
     };
   });
 
@@ -236,6 +222,7 @@ export default async function EntrenamientoAlumnoPage({
         athleteId={user.id}
         exercises={exercises}
         canEdit
+        esCombo={Boolean((workout as { es_combo?: boolean }).es_combo)}
         draft={draft}
         library={
           (libRes.data ?? []) as {

@@ -5,21 +5,13 @@ export const dynamic = "force-dynamic";
 export default async function AlumnoPage() {
   const { supabase, user, profile } = await requireProfile();
 
-  const [athleteRes, cvRes] = await Promise.all([
-    supabase
-      .from("athletes")
-      .select("*")
-      .eq("user_id", user.id)
-      .maybeSingle(),
-    supabase
-      .from("videos")
-      .select("id, estado")
-      .eq("athlete_id", user.id)
-      .eq("estado", "pendiente"),
-  ]);
+  const athleteRes = await supabase
+    .from("athletes")
+    .select("*")
+    .eq("user_id", user.id)
+    .maybeSingle();
 
   const athlete = athleteRes.data;
-  const videosPendientes = cvRes.data?.length ?? 0;
 
   const [programRes, weekRes] = await Promise.all([
     supabase
@@ -111,8 +103,7 @@ export default async function AlumnoPage() {
         </section>
       )}
 
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-        <StatCard label="Videos pendientes de revisión" value={videosPendientes} />
+      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <StatCard label="Entrenamientos registrados" value={ultimosLogs.length} />
         <StatCard
           label="Último entrenamiento"

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Button, TextInput } from "@/components/ui";
+import { Button, Field, TextInput } from "@/components/ui";
 
 type Serie = {
   serie: number;
@@ -33,12 +33,14 @@ type Exercise = {
     sugerencia_progresion: string | null;
   };
   log: { id: string; series: Serie[]; comentarios: string | null } | null;
-  miVideo: string | null;
 };
 
 type Row = { done: boolean; reps: string; peso: string; rir: string; descanso: string };
 
-type DraftData = Record<string, { rows: Row[]; comentario: string }>;
+type DraftData = Record<
+  string,
+  { rows: Row[]; comentario: string; rondas?: string; descanso?: string }
+>;
 type Draft = { data: DraftData; updatedAt: string };
 
 const DRAFT_MAX_AGE_MS = 3 * 24 * 60 * 60 * 1000;
@@ -76,7 +78,12 @@ function aplicarDraft(base: DraftData, draft: DraftData): DraftData {
   const next = { ...base };
   for (const [k, v] of Object.entries(draft)) {
     if (v && Array.isArray(v.rows)) {
-      next[k] = { rows: v.rows, comentario: v.comentario ?? "" };
+      next[k] = {
+        rows: v.rows,
+        comentario: v.comentario ?? "",
+        rondas: v.rondas,
+        descanso: v.descanso,
+      };
     }
   }
   return next;
@@ -114,6 +121,7 @@ export function LiveWorkout({
   athleteId,
   exercises,
   canEdit = false,
+  esCombo = false,
   draft = null,
   library = [],
 }: {
@@ -122,6 +130,7 @@ export function LiveWorkout({
   athleteId: string;
   exercises: Exercise[];
   canEdit?: boolean;
+  esCombo?: boolean;
   draft?: Draft | null;
   library?: { id: string; nombre: string; video_url: string | null }[];
 }) {
@@ -165,7 +174,18 @@ export function LiveWorkout({
 
   const [data, setData] = useState<DraftData>(() => {
     const base = initFromExercises(exercises);
-    return draft ? aplicarDraft(base, draft.data) : base;
+    const applied = draft ? aplicarDraft(base, draft.data) : base;
+    if (esCombo) {
+      applied.combo = {
+        rows: [],
+        comentario: "",
+        rondas: applied.combo?.rondas ?? "",
+        descanso: applied.combo?.descanso ?? "",
+      };
+    } else {
+      delete applied.combo;
+    }
+    return applied;
   });
 
   useEffect(() => {
@@ -273,6 +293,13 @@ export function LiveWorkout({
     }));
   }
 
+  function setCombo(patch: Partial<{ rondas: string; descanso: string }>) {
+    setData((d) => {
+      const prev = d.combo ?? { rows: [], comentario: "" };
+      return { ...d, combo: { ...prev, ...patch } };
+    });
+  }
+
   const filteredLibrary = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return library;
@@ -322,7 +349,6 @@ export function LiveWorkout({
         sugerencia_progresion: null,
       },
       log: null,
-      miVideo: null,
     };
     setItems((prev) => [...prev, nuevo]);
     setData((prev) => ({
@@ -483,6 +509,24 @@ export function LiveWorkout({
 
         if (error) throw error;
       }
+
+      if (esCombo) {
+        const comboG = data.combo;
+        const { error: cbErr } = await supabase
+          .from("workout_combo_logs")
+          .upsert(
+            {
+              workout_id: workoutId,
+              athlete_id: athleteId,
+              rondas: comboG?.rondas ? Number(comboG.rondas) : null,
+              descanso_rondas: comboG?.descanso ? Number(comboG.descanso) : null,
+              completado: true,
+              fecha: hoy,
+            },
+            { onConflict: "athlete_id,workout_id,fecha" }
+          );
+        if (cbErr) throw cbErr;
+      }
     } catch (err) {
       setError((err as { message?: string }).message ?? "Error al guardar.");
       setSaving(false);
@@ -509,6 +553,17 @@ export function LiveWorkout({
 
   return (
     <div className="flex flex-col gap-6">
+      {esCombo ? (
+        <div className="rounded-2xl border border-amber-900/60 bg-amber-950/20 px-5 py-4">
+          <p className="text-sm font-bold text-amber-200">
+            Combo / circuito · {items.length} ejercicios
+          </p>
+          <p className="mt-1 text-sm text-amber-300/80">
+            Hacé los ejercicios uno atrás de otro. Al terminar, anotá las rondas
+            que completaste y el descanso entre rondas.
+          </p>
+        </div>
+      ) : null}
       {canEdit ? (
         <div className="flex flex-col gap-3 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
@@ -584,7 +639,6 @@ export function LiveWorkout({
                 key={ex.id}
                 index={i}
                 exercise={ex}
-                athleteId={athleteId}
                 rows={g.rows}
                 onRow={(idx, patch) => setRow(ex.id, idx, patch)}
                 onAddRow={() => addRow(ex.id)}
@@ -607,6 +661,31 @@ export function LiveWorkout({
           })}
         </ol>
       )}
+
+      {esCombo ? (
+        <div className="grid grid-cols-1 gap-4 rounded-2xl border border-zinc-800 bg-zinc-900/40 p-5 sm:grid-cols-2">
+          <Field label="Rondas completadas">
+            <input
+              type="number"
+              min={0}
+              value={data.combo?.rondas ?? ""}
+              onChange={(e) => setCombo({ rondas: e.target.value })}
+              placeholder="Ej: 3"
+              className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-4 py-2.5 text-sm text-zinc-100 outline-none transition focus:border-zinc-500"
+            />
+          </Field>
+          <Field label="Descanso entre rondas (min)">
+            <input
+              type="number"
+              min={0}
+              value={data.combo?.descanso ?? ""}
+              onChange={(e) => setCombo({ descanso: e.target.value })}
+              placeholder="Ej: 2"
+              className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-4 py-2.5 text-sm text-zinc-100 outline-none transition focus:border-zinc-500"
+            />
+          </Field>
+        </div>
+      ) : null}
 
       <div
         className={`${typing ? "relative" : "sticky bottom-4"} flex flex-col gap-3 rounded-2xl border border-zinc-800 bg-zinc-950/95 p-3 backdrop-blur`}
@@ -750,7 +829,6 @@ function RestTimerBar({
 function ExerciseCard({
   index,
   exercise,
-  athleteId,
   rows,
   onRow,
   onAddRow,
@@ -766,7 +844,6 @@ function ExerciseCard({
 }: {
   index: number;
   exercise: Exercise;
-  athleteId: string;
   rows: Row[];
   onRow: (idx: number, patch: Partial<Row>) => void;
   onAddRow: () => void;
@@ -780,39 +857,9 @@ function ExerciseCard({
   onMoveDown?: () => void;
   onRemove?: () => void;
 }) {
-  const supabase = createClient();
   const t = exercise.target;
 
-  const [uploading, setUploading] = useState(false);
-  const [videoUrl, setVideoUrl] = useState<string | null>(exercise.miVideo);
-  const [videoError, setVideoError] = useState<string | null>(null);
   const [confirmRemove, setConfirmRemove] = useState(false);
-
-  async function handleVideo(file: File) {
-    setVideoError(null);
-    setUploading(true);
-    const ext = file.name.split(".").pop() || "mp4";
-    const path = `${athleteId}/${exercise.id}/${Date.now()}.${ext}`;
-
-    const { error: upErr } = await supabase.storage
-      .from("videos")
-      .upload(path, file);
-
-    if (upErr) {
-      setVideoError(upErr.message);
-      setUploading(false);
-      return;
-    }
-
-    await supabase.from("videos").insert({
-      athlete_id: athleteId,
-      workout_exercise_id: exercise.id,
-      storage_path: path,
-    });
-
-    setVideoUrl(supabase.storage.from("videos").getPublicUrl(path).data.publicUrl);
-    setUploading(false);
-  }
 
   return (
     <li className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-4">
@@ -1006,47 +1053,17 @@ function ExerciseCard({
           className="w-full rounded-md border border-zinc-800 bg-zinc-950 px-2.5 py-1.5 text-sm text-zinc-100 outline-none focus:border-zinc-500 sm:max-w-md"
         />
 
-        <div className="flex items-center gap-2.5">
-          {videoUrl ? (
-            <a
-              href={videoUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded-md bg-emerald-950 px-2.5 py-1.5 text-xs font-semibold text-emerald-300 transition hover:bg-emerald-900"
-            >
-              ▶ Mi video ✓
-            </a>
-          ) : null}
-          {t.video_url ? (
-            <a
-              href={t.video_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded-md border border-zinc-700 px-2.5 py-1.5 text-xs font-medium text-zinc-300 transition hover:border-zinc-500"
-            >
-              ▶ Demo
-            </a>
-          ) : null}
-          <label className="cursor-pointer rounded-md border border-zinc-700 px-2.5 py-1.5 text-xs font-medium text-zinc-300 transition hover:border-zinc-500">
-            {uploading ? "Subiendo…" : "Subir video"}
-            <input
-              type="file"
-              accept="video/*"
-              className="hidden"
-              disabled={uploading}
-              onChange={async (e) => {
-                const file = e.target.files?.[0];
-                if (file) await handleVideo(file);
-                e.target.value = "";
-              }}
-            />
-          </label>
-        </div>
+        {t.video_url ? (
+          <a
+            href={t.video_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-md border border-zinc-700 px-2.5 py-1.5 text-xs font-medium text-zinc-300 transition hover:border-zinc-500"
+          >
+            ▶ Ver video
+          </a>
+        ) : null}
       </div>
-
-      {videoError ? (
-        <p className="mt-2 text-xs text-red-300">{videoError}</p>
-      ) : null}
     </li>
   );
 }

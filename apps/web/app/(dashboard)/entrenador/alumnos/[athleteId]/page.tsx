@@ -11,12 +11,13 @@ export default async function AlumnoDetallePage({
 }) {
   const { athleteId } = await params;
 
-  const { supabase } = await requireProfile();
+  const { supabase, user } = await requireProfile();
 
   const { data: athlete } = await supabase
     .from("athletes")
     .select("id, user_id, nivel, objetivo, estado, fecha_inicio")
     .eq("id", athleteId)
+    .eq("entrenador_id", user.id)
     .maybeSingle();
 
   if (!athlete) {

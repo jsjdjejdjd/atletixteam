@@ -44,16 +44,29 @@ export function WorkoutEditor({
   exercises,
   library,
   logs = [],
+  esCombo = false,
 }: {
   workoutId: string;
   exercises: ExerciseItem[];
   library: { id: string; nombre: string; categoria: string }[];
   logs?: LogItem[];
+  esCombo?: boolean;
 }) {
   const router = useRouter();
 
   return (
     <div className="flex flex-col gap-8">
+      {esCombo ? (
+        <div className="rounded-2xl border border-amber-900/60 bg-amber-950/20 px-5 py-4">
+          <p className="text-sm font-bold text-amber-200">
+            Esta sesión es un combo / circuito
+          </p>
+          <p className="mt-1 text-sm text-amber-300/80">
+            Agregá entre 5 y 8 ejercicios en orden. El alumno los va a hacer uno
+            atrás de otro y al final va a anotar las rondas y el descanso.
+          </p>
+        </div>
+      ) : null}
       {exercises.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/20 px-6 py-12 text-center">
           <p className="text-sm font-semibold text-zinc-400">

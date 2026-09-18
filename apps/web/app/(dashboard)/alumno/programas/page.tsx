@@ -20,11 +20,25 @@ type Program = {
 export default async function ProgramasCatalogoPage() {
   const { supabase, user } = await requireProfile();
 
-  const { data: programs } = await supabase
+  const { data: athlete } = await supabase
+    .from("athletes")
+    .select("id, entrenador_id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  const trainerId = athlete?.entrenador_id ?? null;
+
+  let catalogQuery = supabase
     .from("programs")
     .select("id, nombre, objetivo, descripcion, nivel, categoria, duracion_semanas")
-    .eq("activo", true)
-    .order("nombre", { ascending: true });
+    .eq("activo", true);
+  catalogQuery = trainerId
+    ? catalogQuery.eq("entrenador_id", trainerId)
+    : catalogQuery.is("entrenador_id", null);
+
+  const { data: programs } = await catalogQuery.order("nombre", {
+    ascending: true,
+  });
 
   const { data: mine } = await supabase
     .from("programs")
@@ -39,12 +53,6 @@ export default async function ProgramasCatalogoPage() {
   const listAsesorias = listAll.filter((p) => p.nombre in FAMILIA_ASESORIAS);
 
   let miProgramaId: string | null = null;
-  const { data: athlete } = await supabase
-    .from("athletes")
-    .select("id")
-    .eq("user_id", user.id)
-    .maybeSingle();
-
   if (athlete) {
     const { data: active } = await supabase
       .from("athlete_programs")

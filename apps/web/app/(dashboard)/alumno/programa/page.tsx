@@ -88,10 +88,10 @@ export default async function ProgramaAlumnoPage() {
 
   const weekIds = weeks.map((w) => w.id);
 
-  const { data: workoutsRaw } = weekIds.length
+const { data: workoutsRaw } = weekIds.length
     ? await supabase
         .from("workouts")
-        .select("id, week_id, nombre, dia, descripcion")
+        .select("id, week_id, nombre, dia, descripcion, es_combo")
         .in("week_id", weekIds)
         .order("orden", { ascending: true })
     : { data: null };
@@ -175,6 +175,11 @@ export default async function ProgramaAlumnoPage() {
                           <span className="flex items-center justify-between gap-3">
                             <span className="font-bold text-emerald-200">
                               {labelSesion(s.dia, s.nombre)}
+                              {s.es_combo ? (
+                                <span className="ml-2 rounded-full bg-amber-950 px-2 py-0.5 text-[11px] font-bold text-amber-300">
+                                  Combo
+                                </span>
+                              ) : null}
                             </span>
                             <span className="text-sm text-emerald-300">▶</span>
                           </span>

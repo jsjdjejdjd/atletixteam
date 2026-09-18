@@ -25,9 +25,18 @@ export default async function SemanaPage({
     return <p className="text-zinc-500">Semana no encontrada.</p>;
   }
 
+  const { data: program } = await supabase
+    .from("programs")
+    .select("categoria")
+    .eq("id", week.program_id)
+    .single();
+
+  const esComboAllowed =
+    program?.categoria === "planche" || program?.categoria === "front_lever";
+
   const { data: workouts } = await supabase
     .from("workouts")
-    .select("id, nombre, dia, descripcion")
+    .select("id, nombre, dia, descripcion, es_combo")
     .eq("week_id", weekId)
     .order("orden", { ascending: true });
 
@@ -36,6 +45,7 @@ export default async function SemanaPage({
     nombre: string;
     dia: number | null;
     descripcion: string | null;
+    es_combo: boolean;
   }[];
 
   return (
@@ -63,9 +73,15 @@ export default async function SemanaPage({
         ) : null}
       </section>
 
-      <SectionCard title="Agregar sesión de entrenamiento">
+      <SectionCard
+        title={
+          esComboAllowed
+            ? "Agregar sesión (o combo / circuito)"
+            : "Agregar sesión de entrenamiento"
+        }
+      >
         <div className="p-6">
-          <WorkoutForm weekId={weekId} />
+          <WorkoutForm weekId={weekId} esComboAllowed={esComboAllowed} />
         </div>
       </SectionCard>
 
@@ -87,6 +103,11 @@ export default async function SemanaPage({
                     <div>
                       <p className="font-semibold">
                         {labelSesion(wo.dia, wo.nombre)}
+                        {wo.es_combo ? (
+                          <span className="ml-2 rounded-full bg-amber-950 px-2 py-0.5 text-[11px] font-bold text-amber-300">
+                            Combo
+                          </span>
+                        ) : null}
                       </p>
                       {wo.descripcion ? (
                         <p className="text-sm text-zinc-500">{wo.descripcion}</p>

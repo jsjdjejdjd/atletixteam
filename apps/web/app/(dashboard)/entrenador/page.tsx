@@ -21,16 +21,12 @@ export default async function EntrenadorPage() {
     return <p className="text-zinc-500">Sin sesión.</p>;
   }
 
-  const [athletesRes, videosRes, programsRes] = await Promise.all([
+  const [athletesRes, programsRes] = await Promise.all([
     supabase
       .from("athletes")
       .select("id, user_id, nivel, objetivo, estado, fecha_inicio")
       .eq("entrenador_id", user.id)
       .order("created_at", { ascending: false }),
-    supabase
-      .from("videos")
-      .select("id, estado")
-      .eq("estado", "pendiente"),
     supabase
       .from("programs")
       .select("id, nombre, activo")
@@ -39,7 +35,6 @@ export default async function EntrenadorPage() {
   ]);
 
   const athletes = (athletesRes.data ?? []) as AthleteRow[];
-  const videosPendientes = videosRes.data?.length ?? 0;
   const programas = programsRes.data ?? [];
 
   const activos = athletes.filter((a) => a.estado === "activo").length;
@@ -66,10 +61,9 @@ export default async function EntrenadorPage() {
         <h1 className="mt-2 text-4xl font-black tracking-tight">Dashboard</h1>
       </section>
 
-      <section className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
         <StatCard label="Alumnos totales" value={athletes.length} />
         <StatCard label="Alumnos activos" value={activos} />
-        <StatCard label="Videos pendientes" value={videosPendientes} />
         <StatCard label="Programas activos" value={programas.length} />
       </section>
 

@@ -25,6 +25,9 @@ export default async function ProgramaPage({
     return <p className="text-zinc-500">Programa no encontrado.</p>;
   }
 
+  const esComboAllowed =
+    program.categoria === "planche" || program.categoria === "front_lever";
+
   const { data: weeks } = await supabase
     .from("weeks")
     .select("id, numero, bloque, objetivo, es_descarga, notas")
@@ -119,6 +122,41 @@ export default async function ProgramaPage({
           <WeekForm programId={id} />
         </div>
       </SectionCard>
+
+      {esComboAllowed ? (
+        <SectionCard title="Crear combos / circuitos">
+          <div className="p-6">
+            {list.length === 0 ? (
+              <p className="text-sm text-zinc-500">
+                Primero creá una semana (formulario de arriba). Después agregás
+                combos dentro de esa semana.
+              </p>
+            ) : (
+              <>
+                <p className="mb-4 text-sm text-zinc-400">
+                  Un combo es una sesión con 5-8 ejercicios en cadena
+                  (circuito). Elegí en qué semana lo querés:
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {list.map((w) => (
+                    <Link
+                      key={w.id}
+                      href={`/entrenador/programas/${id}/semanas/${w.id}`}
+                      className="rounded-full border border-amber-900/70 bg-amber-950/30 px-4 py-2 text-sm font-semibold text-amber-200 transition hover:border-amber-500"
+                    >
+                      + Crear combo · Semana {w.numero}
+                    </Link>
+                  ))}
+                </div>
+                <p className="mt-4 text-xs text-zinc-500">
+                  Al entrar a la semana, en {"\u201c"}Agregar sesión{"\u201d"} marcá la casilla
+                  {"\u201c"}Es un combo / circuito{"\u201d"}.
+                </p>
+              </>
+            )}
+          </div>
+        </SectionCard>
+      ) : null}
 
       {list.length === 0 ? (
         <EmptyState

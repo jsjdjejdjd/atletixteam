@@ -32,7 +32,7 @@ export default async function EntrenamientoPage({
   const [workoutRes, exercisesRes, libraryRes, logsRes] = await Promise.all([
     supabase
       .from("workouts")
-      .select("id, nombre, dia, week_id")
+      .select("id, nombre, dia, week_id, es_combo")
       .eq("id", workoutId)
       .single(),
     supabase
@@ -154,6 +154,7 @@ export default async function EntrenamientoPage({
         exercises={exercises}
         library={library}
         logs={logs}
+        esCombo={Boolean((workout as { es_combo?: boolean }).es_combo)}
       />
     </div>
   );

@@ -5,13 +5,20 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button, Field } from "@/components/ui";
 
-export function WorkoutForm({ weekId }: { weekId: string }) {
+export function WorkoutForm({
+  weekId,
+  esComboAllowed = false,
+}: {
+  weekId: string;
+  esComboAllowed?: boolean;
+}) {
   const router = useRouter();
   const supabase = createClient();
 
   const [nombre, setNombre] = useState("");
   const [dia, setDia] = useState("1");
   const [descripcion, setDescripcion] = useState("");
+  const [esCombo, setEsCombo] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -26,6 +33,7 @@ export function WorkoutForm({ weekId }: { weekId: string }) {
       dia: Number(dia),
       orden: Number(dia),
       descripcion: descripcion.trim() || null,
+      es_combo: esCombo,
     });
 
     if (error) {
@@ -74,7 +82,21 @@ export function WorkoutForm({ weekId }: { weekId: string }) {
           />
         </Field>
       </div>
-      <div className="flex items-end">
+      {esComboAllowed ? (
+        <label className="flex cursor-pointer items-center gap-2.5 rounded-xl border border-zinc-800 bg-zinc-900/40 px-4 py-3 sm:col-span-4">
+          <input
+            type="checkbox"
+            checked={esCombo}
+            onChange={(e) => setEsCombo(e.target.checked)}
+            className="h-4 w-4 accent-emerald-500"
+          />
+          <span className="text-sm text-zinc-300">
+            Es un <strong>combo / circuito</strong> (5-8 ejercicios uno atrás de
+            otro, el alumno anota rondas y descanso)
+          </span>
+        </label>
+      ) : null}
+      <div className="flex items-end sm:col-span-2">
         <Button type="submit" disabled={loading} className="w-full">
           {loading ? "…" : "+ Sesión"}
         </Button>
