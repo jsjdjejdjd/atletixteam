@@ -137,7 +137,7 @@ function AddExerciseForm({
   esCombo,
 }: {
   workoutId: string;
-  library: { id: string; nombre: string; categoria: string }[];
+  library: { id: string; nombre: string; categoria: string; disciplina?: string | null }[];
   nextOrder: number;
   onSaved: () => void;
   esCombo?: boolean;
