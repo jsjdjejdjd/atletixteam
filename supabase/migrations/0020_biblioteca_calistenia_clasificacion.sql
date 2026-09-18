@@ -57,14 +57,17 @@ update public.exercises
 set categoria_anterior = categoria
 where disciplina = 'Calistenia' and categoria_anterior is null;
 
--- 4) MAPA DE RECLASIFICACION
-drop table if exists _mapa_cal;
-create table _mapa_cal (
-  nombre text primary key, categoria text, subcategoria text, movement_type text,
-  skill text, muscle_group text, objetivo text, estado text, duplicado_de text, progresion_de text
-);
+-- 4-7) MAPA + CLASIFICACION + RELACIONES + INDICES
+-- Todo dentro de un unico bloque: el editor de Supabase no conserva las
+-- tablas temporales entre sentencias, asi que lo ejecutamos en una sesion.
+do $fase18$
+begin
+  execute 'create temporary table _mapa_cal (
+    nombre text primary key, categoria text, subcategoria text, movement_type text,
+    skill text, muscle_group text, objetivo text, estado text, duplicado_de text, progresion_de text
+  )';
 
-insert into _mapa_cal (nombre, categoria, subcategoria, movement_type, skill, muscle_group, objetivo, estado, duplicado_de, progresion_de) values
+  insert into _mapa_cal (nombre, categoria, subcategoria, movement_type, skill, muscle_group, objetivo, estado, duplicado_de, progresion_de) values
   ('5 toques de barra + L sit + 5 elevaciones en barra', 'Core', 'Revisar', 'Técnica', null, 'Core', 'Técnica', 'revisar', null, null),
   ('90 Degree push up', 'Empuje', 'Empuje vertical', 'Dinámico', '90 Degree', 'Hombros', 'Fuerza', 'clasificado', null, null),
   ('Abdominal bicicleta', 'Core', 'Rotación', 'Dinámico', null, 'Core', 'Fuerza', 'clasificado', null, null),
@@ -318,44 +321,40 @@ insert into _mapa_cal (nombre, categoria, subcategoria, movement_type, skill, mu
   ('Vueltas al mundo en barra', 'Skills', 'Otros', 'Movilidad', 'Skin the Cat', 'Hombros', 'Movilidad', 'clasificado', null, null),
   ('Zancada caminando', 'Piernas', 'Dominante de rodilla', 'Dinámico', null, 'Cuádriceps', 'Fuerza', 'clasificado', null, null);
 
--- 5) APLICAR LA CLASIFICACION
-update public.exercises e set
-  categoria             = m.categoria,
-  subcategoria          = m.subcategoria,
-  movement_type         = m.movement_type,
-  skill                 = m.skill,
-  muscle_group          = m.muscle_group,
-  objetivo              = m.objetivo,
-  estado_clasificacion  = m.estado
-from _mapa_cal m
-where e.nombre = m.nombre and e.disciplina = 'Calistenia';
+  -- todos parten de 'revisar'; el mapa marca los que quedan clasificados
+  update public.exercises set estado_clasificacion = 'revisar' where disciplina = 'Calistenia';
 
--- 6) RESOLVER RELACIONES (duplicado_de / progresion_de) por nombre
-update public.exercises e
-set duplicado_de = d.id
-from _mapa_cal m
-join public.exercises d on d.nombre = m.duplicado_de and d.disciplina = 'Calistenia'
-where m.duplicado_de is not null and e.nombre = m.nombre and e.disciplina = 'Calistenia';
+  update public.exercises e set
+    categoria             = m.categoria,
+    subcategoria          = m.subcategoria,
+    movement_type         = m.movement_type,
+    skill                 = m.skill,
+    muscle_group          = m.muscle_group,
+    objetivo              = m.objetivo,
+    estado_clasificacion  = m.estado
+  from _mapa_cal m
+  where e.nombre = m.nombre and e.disciplina = 'Calistenia';
 
-update public.exercises e
-set progresion_de = p.id
-from _mapa_cal m
-join public.exercises p on p.nombre = m.progresion_de and p.disciplina = 'Calistenia'
-where m.progresion_de is not null and e.nombre = m.nombre and e.disciplina = 'Calistenia';
+  update public.exercises e
+  set duplicado_de = d.id
+  from _mapa_cal m
+  join public.exercises d on d.nombre = m.duplicado_de and d.disciplina = 'Calistenia'
+  where m.duplicado_de is not null and e.nombre = m.nombre and e.disciplina = 'Calistenia';
 
--- cualquier Calistenia que no haya entrado al mapa queda para revisar
-update public.exercises set estado_clasificacion = 'revisar'
-where disciplina = 'Calistenia' and nombre not in (select nombre from _mapa_cal);
+  update public.exercises e
+  set progresion_de = p.id
+  from _mapa_cal m
+  join public.exercises p on p.nombre = m.progresion_de and p.disciplina = 'Calistenia'
+  where m.progresion_de is not null and e.nombre = m.nombre and e.disciplina = 'Calistenia';
 
-drop table if exists _mapa_cal;
-
--- 7) INDICES
-create index if not exists idx_exercises_movement_type on public.exercises (movement_type);
-create index if not exists idx_exercises_skill         on public.exercises (skill);
-create index if not exists idx_exercises_muscle_group  on public.exercises (muscle_group);
-create index if not exists idx_exercises_estado_clas   on public.exercises (estado_clasificacion);
-create index if not exists idx_exercises_duplicado     on public.exercises (duplicado_de);
-create index if not exists idx_exercises_skill_trgm    on public.exercises using gin (skill gin_trgm_ops);
+  execute 'create index if not exists idx_exercises_movement_type on public.exercises (movement_type)';
+  execute 'create index if not exists idx_exercises_skill         on public.exercises (skill)';
+  execute 'create index if not exists idx_exercises_muscle_group  on public.exercises (muscle_group)';
+  execute 'create index if not exists idx_exercises_estado_clas   on public.exercises (estado_clasificacion)';
+  execute 'create index if not exists idx_exercises_duplicado     on public.exercises (duplicado_de)';
+  execute 'create index if not exists idx_exercises_skill_trgm    on public.exercises using gin (skill gin_trgm_ops)';
+end
+$fase18$;
 
 -- 8) VERIFICACION
 select 'FASE 18 OK' as estado,
