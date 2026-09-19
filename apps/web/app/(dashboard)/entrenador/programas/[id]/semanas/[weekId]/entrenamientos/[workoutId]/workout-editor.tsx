@@ -88,7 +88,6 @@ export function WorkoutEditor({
         workoutId={workoutId}
         library={library}
         nextOrder={exercises.length + 1}
-        esCombo={esCombo}
         onSaved={() => router.refresh()}
       />
 
@@ -134,13 +133,11 @@ function AddExerciseForm({
   library,
   nextOrder,
   onSaved,
-  esCombo,
 }: {
   workoutId: string;
-  library: { id: string; nombre: string; categoria: string }[];
+  library: { id: string; nombre: string; categoria: string; disciplina?: string | null }[];
   nextOrder: number;
   onSaved: () => void;
-  esCombo?: boolean;
 }) {
   const supabase = createClient();
   const [exerciseId, setExerciseId] = useState("");
