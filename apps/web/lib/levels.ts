@@ -4,6 +4,7 @@ export const CATEGORIAS = [
   { value: "general", label: "Calistenia General" },
   { value: "planche", label: "Planche" },
   { value: "front_lever", label: "Front Lever" },
+  { value: "power_free", label: "Combos Power Free" },
 ] as const;
 
 export function categoriaLabel(cat: string | null) {
@@ -13,7 +14,8 @@ export function categoriaLabel(cat: string | null) {
 }
 
 export function esProgramaCombo(categoria: string | null, nombre: string | null): boolean {
-  if (categoria === "planche" || categoria === "front_lever") return true;
+  if (categoria === "planche" || categoria === "front_lever" || categoria === "power_free")
+    return true;
   const norm = (nombre ?? "")
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
