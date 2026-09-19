@@ -147,6 +147,7 @@ function AddExerciseForm({
   const [busqueda, setBusqueda] = useState("");
   const [series, setSeries] = useState("3");
   const [repeticiones, setRepeticiones] = useState("");
+  const [segundos, setSegundos] = useState("");
   const [rir, setRir] = useState("");
   const [descanso, setDescanso] = useState("");
   const [peso, setPeso] = useState("");
@@ -155,6 +156,7 @@ function AddExerciseForm({
 
   const seleccionado = library.find((l) => l.id === exerciseId) ?? null;
   const q = busqueda.trim().toLowerCase();
+
   const esCalistenia = (l: (typeof library)[number]) => {
     const disc = l.disciplina ?? "Calistenia";
     if (disc === "Musculación") return false;
@@ -180,16 +182,26 @@ function AddExerciseForm({
     setError(null);
     setLoading(true);
 
-    const { error } = await supabase.from("workout_exercises").insert({
-      workout_id: workoutId,
-      exercise_id: exerciseId,
-      orden: nextOrder,
-      series: series ? Number(series) : null,
-      repeticiones: repeticiones.trim() || null,
-      rir: rir ? Number(rir) : null,
-      descanso_segundos: descanso ? Number(descanso) : null,
-      peso: peso.trim() || null,
-    });
+    const { error } = await supabase.from("workout_exercises").insert(
+      esCombo
+        ? {
+            workout_id: workoutId,
+            exercise_id: exerciseId,
+            orden: nextOrder,
+            repeticiones: repeticiones.trim() || null,
+            tiempo: segundos.trim() || null,
+          }
+        : {
+            workout_id: workoutId,
+            exercise_id: exerciseId,
+            orden: nextOrder,
+            series: series ? Number(series) : null,
+            repeticiones: repeticiones.trim() || null,
+            rir: rir ? Number(rir) : null,
+            descanso_segundos: descanso ? Number(descanso) : null,
+            peso: peso.trim() || null,
+          }
+    );
 
     if (error) {
       setError(error.message);
@@ -198,6 +210,7 @@ function AddExerciseForm({
     }
 
     setRepeticiones("");
+    setSegundos("");
     setRir("");
     setDescanso("");
     setPeso("");
@@ -271,6 +284,28 @@ function AddExerciseForm({
           </div>
         )}
 
+        {esCombo ? (
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Repeticiones">
+              <input
+                value={repeticiones}
+                onChange={(e) => setRepeticiones(e.target.value)}
+                placeholder="Ej: 5 o 5x"
+                className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-2.5 text-sm text-zinc-100 outline-none transition focus:border-zinc-500"
+              />
+            </Field>
+            <Field label="Segundos">
+              <input
+                type="number"
+                min={0}
+                value={segundos}
+                onChange={(e) => setSegundos(e.target.value)}
+                placeholder="30"
+                className="w-full rounded-lg border border-zinc-800 bg-zinc-900 px-4 py-2.5 text-sm text-zinc-100 outline-none transition focus:border-zinc-500"
+              />
+            </Field>
+          </div>
+        ) : (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
           <Field label="Series">
             <input
@@ -318,6 +353,7 @@ function AddExerciseForm({
             />
           </Field>
         </div>
+        )}
 
         {error && (
           <p className="rounded-lg border border-red-900/60 bg-red-950/40 px-4 py-3 text-sm text-red-300">
