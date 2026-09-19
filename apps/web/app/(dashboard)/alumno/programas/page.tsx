@@ -35,7 +35,12 @@ export default async function ProgramasCatalogoPage() {
         .eq("activo", true)
         .or(`entrenador_id.eq.${trainerId},entrenador_id.is.null`)
         .order("nombre", { ascending: true })
-    : { data: [] };
+    : await supabase
+        .from("programs")
+        .select("id, nombre, objetivo, descripcion, nivel, categoria, duracion_semanas")
+        .eq("activo", true)
+        .is("entrenador_id", null)
+        .order("nombre", { ascending: true });
 
   const { data: mine } = await supabase
     .from("programs")
