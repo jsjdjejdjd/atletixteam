@@ -154,14 +154,12 @@ function AddExerciseForm({
 
   const seleccionado = library.find((l) => l.id === exerciseId) ?? null;
   const q = busqueda.trim().toLowerCase();
-  const filtrados = library
-    .filter((l) => l.categoria !== "Core")
-    .filter(
-      (l) =>
-        !q ||
-        l.nombre.toLowerCase().includes(q) ||
-        l.categoria.toLowerCase().includes(q)
-    )
+  const filtrados = library.filter(
+    (l) =>
+      !q ||
+      l.nombre.toLowerCase().includes(q) ||
+      l.categoria.toLowerCase().includes(q)
+  )
     .sort((a, b) => a.nombre.localeCompare(b.nombre))
     .slice(0, 80);
 
