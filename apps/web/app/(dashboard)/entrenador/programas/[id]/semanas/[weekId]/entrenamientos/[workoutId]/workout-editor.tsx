@@ -80,7 +80,7 @@ export function WorkoutEditor({
 
       <ol className="flex flex-col gap-4">
         {exercises.map((ex, index) => (
-          <ExerciseRow key={ex.id} index={index} exercise={ex} />
+          <ExerciseRow key={ex.id} index={index} exercise={ex} exercises={exercises} />
         ))}
       </ol>
 
@@ -133,11 +133,13 @@ function AddExerciseForm({
   library,
   nextOrder,
   onSaved,
+  esCombo = false,
 }: {
   workoutId: string;
   library: { id: string; nombre: string; categoria: string; disciplina?: string | null }[];
   nextOrder: number;
   onSaved: () => void;
+  esCombo?: boolean;
 }) {
   const supabase = createClient();
   const [exerciseId, setExerciseId] = useState("");
@@ -152,13 +154,7 @@ function AddExerciseForm({
 
   const seleccionado = library.find((l) => l.id === exerciseId) ?? null;
   const q = busqueda.trim().toLowerCase();
-  const esCalistenia = (l: (typeof library)[number]) => {
-    const disc = l.disciplina ?? "Calistenia";
-    if (disc === "Musculación") return false;
-    return disc === "Calistenia" || disc === "Accesorios Calistenia";
-  };
   const filtrados = library
-    .filter(esCalistenia)
     .filter((l) => l.categoria !== "Core")
     .filter(
       (l) =>
@@ -332,7 +328,7 @@ function AddExerciseForm({
   );
 }
 
-function ExerciseRow({ index, exercise }: { index: number; exercise: ExerciseItem }) {
+function ExerciseRow({ index, exercise, exercises }: { index: number; exercise: ExerciseItem; exercises: ExerciseItem[] }) {
   const router = useRouter();
   const supabase = createClient();
 
@@ -393,6 +389,30 @@ function ExerciseRow({ index, exercise }: { index: number; exercise: ExerciseIte
     router.refresh();
   }
 
+  async function handleMoveUp() {
+    if (index === 0) return;
+    const prev = exercises[index - 1];
+    const { error } = await supabase
+      .from("workout_exercises")
+      .upsert([
+        { id: exercise.id, orden: prev.orden },
+        { id: prev.id, orden: exercise.orden },
+      ]);
+    if (!error) router.refresh();
+  }
+
+  async function handleMoveDown() {
+    if (index === exercises.length - 1) return;
+    const next = exercises[index + 1];
+    const { error } = await supabase
+      .from("workout_exercises")
+      .upsert([
+        { id: exercise.id, orden: next.orden },
+        { id: next.id, orden: exercise.orden },
+      ]);
+    if (!error) router.refresh();
+  }
+
   return (
     <li className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6">
       <div className="mb-4 flex items-center justify-between gap-3">
@@ -405,12 +425,30 @@ function ExerciseRow({ index, exercise }: { index: number; exercise: ExerciseIte
             <p className="text-xs text-zinc-500">{exercise.exercise_categoria}</p>
           </div>
         </div>
-        <button
-          onClick={handleDelete}
-          className="rounded-lg border border-red-900/70 px-3 py-1.5 text-xs text-red-300 transition hover:bg-red-950/40"
-        >
-          Eliminar
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={handleMoveUp}
+            disabled={index === 0}
+            className="rounded-lg border border-zinc-700 px-2 py-1 text-xs text-zinc-300 transition hover:border-zinc-500 disabled:opacity-30"
+          >
+            ▲
+          </button>
+          <button
+            type="button"
+            onClick={handleMoveDown}
+            disabled={index === exercises.length - 1}
+            className="rounded-lg border border-zinc-700 px-2 py-1 text-xs text-zinc-300 transition hover:border-zinc-500 disabled:opacity-30"
+          >
+            ▼
+          </button>
+          <button
+            onClick={handleDelete}
+            className="rounded-lg border border-red-900/70 px-3 py-1.5 text-xs text-red-300 transition hover:bg-red-950/40"
+          >
+            Eliminar
+          </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
