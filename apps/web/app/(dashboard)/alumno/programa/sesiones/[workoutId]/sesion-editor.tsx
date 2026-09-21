@@ -220,7 +220,7 @@ export function SesionEditor({
                   botón de arriba.
                 </li>
               ) : (
-                filtered.slice(0, 40).map((ex) => {
+                    filtered.map((ex) => {
                   const yaEsta = rows.some((r) => r.exercise_id === ex.id);
                   return (
                     <li key={ex.id}>

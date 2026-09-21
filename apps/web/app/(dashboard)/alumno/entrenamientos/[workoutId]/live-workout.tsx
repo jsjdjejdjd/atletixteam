@@ -413,25 +413,32 @@ export function LiveWorkout({
     ];
     const conOrden = reordered.map((it, i) => ({ ...it, orden: i + 1 }));
     setItems(conOrden);
-    await Promise.all(
-      conOrden.map((it) =>
-        it.athlete_id === athleteId
-          ? supabase
-              .from("workout_exercises")
-              .update({ orden: it.orden })
-              .eq("id", it.id)
-          : supabase
-              .from("workout_exercise_overrides")
-              .upsert(
-                {
-                  athlete_id: athleteId,
-                  workout_exercise_id: it.id,
-                  orden: it.orden,
-                },
-                { onConflict: "athlete_id,workout_exercise_id" }
-              )
-      )
-    );
+
+    const propios = conOrden
+      .filter((it) => it.athlete_id === athleteId)
+      .map((it) => ({ id: it.id, orden: it.orden }));
+
+    const overrideRows = conOrden
+      .filter((it) => it.athlete_id !== athleteId)
+      .map((it) => ({
+        athlete_id: athleteId,
+        workout_exercise_id: it.id,
+        orden: it.orden,
+      }));
+
+    await Promise.all([
+      propios.length > 0
+        ? supabase
+            .from("workout_exercises")
+            .upsert(propios, { onConflict: "id" })
+            .then((r) => r)
+        : Promise.resolve({ error: null } as { error: null }),
+      overrideRows.length > 0
+        ? supabase
+            .from("workout_exercise_overrides")
+            .upsert(overrideRows, { onConflict: "athlete_id,workout_exercise_id" })
+        : Promise.resolve({ error: null } as { error: null }),
+    ]);
   }
 
   const anyDone = useMemo(
@@ -594,7 +601,7 @@ export function LiveWorkout({
                     No se encontraron ejercicios.
                   </li>
                 ) : (
-                  filteredLibrary.slice(0, 60).map((l) => {
+                  filteredLibrary.map((l) => {
                     const yaEsta = items.some((i) => i.exercise_id === l.id);
                     return (
                       <li key={l.id}>
