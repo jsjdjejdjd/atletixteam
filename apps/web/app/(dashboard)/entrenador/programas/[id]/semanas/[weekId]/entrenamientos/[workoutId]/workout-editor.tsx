@@ -160,8 +160,7 @@ function AddExerciseForm({
       l.nombre.toLowerCase().includes(q) ||
       l.categoria.toLowerCase().includes(q)
   )
-    .sort((a, b) => a.nombre.localeCompare(b.nombre))
-    .slice(0, 80);
+    .sort((a, b) => a.nombre.localeCompare(b.nombre));
 
   async function handleAdd() {
     if (!exerciseId) {
