@@ -65,17 +65,23 @@ export default async function AlumnosPage() {
     (programs ?? []).map((p) => [p.id, p.nombre])
   );
 
-  const athleteProgramMap = new Map<string, string>();
+  const athleteProgramMap = new Map<string, string[]>();
   for (const asg of assignments ?? []) {
     const name = programNameMap.get(asg.program_id);
-    if (name) athleteProgramMap.set(asg.athlete_id, name);
+    if (!name) continue;
+    const prev = athleteProgramMap.get(asg.athlete_id) ?? [];
+    prev.push(name);
+    athleteProgramMap.set(asg.athlete_id, prev);
   }
 
-  const rows: AthleteRowData[] = athletes.map((a) => ({
-    ...a,
-    paciente: profileMap.get(a.user_id) ?? "Sin nombre",
-    programa_nombre: athleteProgramMap.get(a.id) ?? null,
-  }));
+  const rows: AthleteRowData[] = athletes.map((a) => {
+    const nombres = athleteProgramMap.get(a.id) ?? [];
+    return {
+      ...a,
+      paciente: profileMap.get(a.user_id) ?? "Sin nombre",
+      programa_nombre: nombres.join(", ") || null,
+    };
+  });
 
   return (
     <div className="flex flex-col gap-8">
@@ -83,8 +89,8 @@ export default async function AlumnosPage() {
         <p className="text-sm font-medium text-zinc-500">Panel del entrenador</p>
         <h1 className="mt-2 text-3xl font-black tracking-tight">Alumnos</h1>
         <p className="mt-1 text-sm text-zinc-400">
-          Tus alumnos eligen su programa desde su cuenta. Acá ves su nivel y en
-          qué programa están.
+          Tus alumnos eligen sus programas desde su cuenta. Acá ves su nivel y en
+          qué programas están.
         </p>
       </section>
 

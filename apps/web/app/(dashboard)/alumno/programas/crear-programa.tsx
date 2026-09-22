@@ -225,13 +225,7 @@ export function CrearProgramaForm({ exercises }: { exercises: LibraryExercise[] 
       }
     }
 
-    // 5) Inscripción (cierra el programa activo anterior)
-    await supabase
-      .from("athlete_programs")
-      .update({ estado: "finalizado" })
-      .eq("athlete_id", athleteId)
-      .eq("estado", "activo");
-
+    // 5) Inscripción (puede sumar varios programas activos a la vez)
     const { error: enrollErr } = await supabase.from("athlete_programs").insert({
       athlete_id: athleteId,
       program_id: program.id,

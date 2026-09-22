@@ -5,7 +5,7 @@ import { EnrollButton } from "./enroll-button";
 
 export const dynamic = "force-dynamic";
 
-const ORDER = ["general", "planche", "front_lever"] as const;
+const ORDER = ["general", "planche", "front_lever", "power_free"] as const;
 
 type Program = {
   id: string;
@@ -54,15 +54,14 @@ export default async function ProgramasCatalogoPage() {
   const list = listAll.filter((p) => !(p.nombre in FAMILIA_ASESORIAS));
   const listAsesorias = listAll.filter((p) => p.nombre in FAMILIA_ASESORIAS);
 
-  let miProgramaId: string | null = null;
+  let miProgramaIds = new Set<string>();
   if (athlete) {
     const { data: active } = await supabase
       .from("athlete_programs")
       .select("program_id")
       .eq("athlete_id", athlete.id)
-      .eq("estado", "activo")
-      .maybeSingle();
-    miProgramaId = active?.program_id ?? null;
+      .eq("estado", "activo");
+    miProgramaIds = new Set((active ?? []).map((a) => a.program_id));
   }
 
   const nivelOrder = (n: string | null) => {
@@ -120,7 +119,7 @@ export default async function ProgramasCatalogoPage() {
         ) : null}
         <div className="mt-4 flex flex-col gap-2">
           {opciones.map((o) => {
-            const esMio = o.id === miProgramaId;
+            const esMio = miProgramaIds.has(o.id);
             return (
               <div
                 key={o.id}
@@ -132,16 +131,18 @@ export default async function ProgramasCatalogoPage() {
               >
                 <div className="flex flex-wrap items-center gap-2 text-xs">
                   <span className="rounded-full bg-white px-3 py-1 font-bold text-zinc-950">
-                    {etiqueta === "descripcion"
-                      ? (o.descripcion ?? "—")
-                      : (o.nivel ?? "—")}
+                    {o.categoria === "power_free"
+                      ? "POWER FREE · LIBERADO"
+                      : etiqueta === "descripcion"
+                        ? (o.descripcion ?? "—")
+                        : (o.nivel ?? "—")}
                   </span>
                   <span className="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300">
                     {o.duracion_semanas ?? "?"} semanas
                   </span>
                   {esMio ? (
                     <span className="rounded-full bg-emerald-950 px-3 py-1 font-semibold text-emerald-300">
-                      Mi programa
+                      Ya estás inscripto
                     </span>
                   ) : null}
                 </div>
@@ -161,8 +162,8 @@ export default async function ProgramasCatalogoPage() {
           <p className="text-sm font-medium text-zinc-500">Catálogo de entrenamiento</p>
           <h1 className="mt-2 text-3xl font-black tracking-tight">Programas</h1>
           <p className="mt-1 text-sm text-zinc-400">
-            Elegí un programa ya armado por tu entrenador, o creá el tuyo propio con
-            los ejercicios de la biblioteca. Podés cambiar en cualquier momento.
+            Elegí los programas que quieras del catálogo (podés estar en varios a
+            la vez) o creá el tuyo propio con los ejercicios de la biblioteca.
           </p>
         </div>
         <LinkButton href="/alumno/programas/nuevo" variant="primary">
@@ -177,7 +178,7 @@ export default async function ProgramasCatalogoPage() {
           </h2>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {misProgramas.map((p) => {
-              const esMio = p.id === miProgramaId;
+              const esMio = miProgramaIds.has(p.id);
               return (
                 <div
                   key={p.id}
@@ -195,7 +196,9 @@ export default async function ProgramasCatalogoPage() {
                   </div>
                   <div className="mt-2 flex flex-wrap gap-2 text-xs">
                     <span className="rounded-full bg-white px-3 py-1 font-bold text-zinc-950">
-                      {p.nivel ?? "—"}
+                      {p.categoria === "power_free"
+                        ? "POWER FREE · LIBERADO"
+                        : (p.nivel ?? "—")}
                     </span>
                     <span className="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300">
                       1 semana
@@ -228,12 +231,8 @@ export default async function ProgramasCatalogoPage() {
 
       {grupos.length === 0 && familiasAsesorias.length === 0 ? (
         <EmptyState
-          title="Todavía no hay programas de tu entrenador"
-          description={
-            trainerId
-              ? "Cuando tu entrenador publique programas, vas a poder elegirlos acá."
-              : "Cuando tu entrenador te vincule a su cuenta, vas a ver sus programas para elegir."
-          }
+          title="Estás desvinculado de tu entrenador"
+          description="Pensá que los programas que vas a ver son los de la biblioteca global. Así que Power Free será un programa de la biblioteca."
         />
       ) : (
         <div className="flex flex-col gap-8">
@@ -253,7 +252,7 @@ export default async function ProgramasCatalogoPage() {
                 {simples.length > 0 ? (
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                     {simples.map((p) => {
-                      const esMio = p.id === miProgramaId;
+                      const esMio = miProgramaIds.has(p.id);
                       return (
                         <div
                           key={p.id}
@@ -267,7 +266,7 @@ export default async function ProgramasCatalogoPage() {
                             <h3 className="text-lg font-bold">{p.nombre}</h3>
                             {esMio ? (
                               <span className="rounded-full bg-emerald-950 px-3 py-1 text-xs font-semibold text-emerald-300">
-                                Mi programa
+                                Ya estás inscripto
                               </span>
                             ) : null}
                           </div>

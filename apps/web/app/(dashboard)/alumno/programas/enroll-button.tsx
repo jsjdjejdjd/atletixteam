@@ -66,14 +66,18 @@ export function EnrollButton({
       return;
     }
 
-    const { error: closeErr } = await supabase
+    const { data: yaInscripto } = await supabase
       .from("athlete_programs")
-      .update({ estado: "finalizado" })
+      .select("id")
       .eq("athlete_id", athleteId)
-      .eq("estado", "activo");
-    if (closeErr) {
-      setError(closeErr.message);
+      .eq("program_id", programId)
+      .eq("estado", "activo")
+      .maybeSingle();
+
+    if (yaInscripto) {
       setLoading(false);
+      router.push("/alumno/programa");
+      router.refresh();
       return;
     }
 

@@ -18,8 +18,7 @@ export default async function AlumnoPage() {
       .from("athlete_programs")
       .select("id, program_id, estado")
       .eq("athlete_id", athlete?.id ?? "")
-      .eq("estado", "activo")
-      .maybeSingle(),
+      .eq("estado", "activo"),
     supabase
       .from("workout_logs")
       .select("id, fecha, completado")
@@ -28,16 +27,23 @@ export default async function AlumnoPage() {
       .limit(10),
   ]);
 
-  const programId = programRes.data?.program_id ?? null;
+  const programIds = (programRes.data ?? [])
+    .map((a) => a.program_id)
+    .filter((x): x is string => !!x);
 
-  let program = null;
-  if (programId) {
+  let programs: {
+    id: string;
+    nombre: string;
+    objetivo: string | null;
+    nivel: string | null;
+    duracion_semanas: number | null;
+  }[] = [];
+  if (programIds.length > 0) {
     const { data } = await supabase
       .from("programs")
       .select("id, nombre, objetivo, nivel, duracion_semanas")
-      .eq("id", programId)
-      .single();
-    program = data;
+      .in("id", programIds);
+    programs = (data ?? []) as typeof programs;
   }
 
   const ultimosLogs = weekRes.data ?? [];
@@ -58,39 +64,48 @@ export default async function AlumnoPage() {
         </p>
       </section>
 
-      {program ? (
-        <section className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6">
+      {programs.length > 0 ? (
+        <section className="flex flex-col gap-4">
           <p className="text-xs font-bold tracking-[0.25em] text-zinc-500 uppercase">
-            Tu programa actual
+            Tus programas
           </p>
-          <h2 className="mt-2 text-2xl font-extrabold">{program.nombre}</h2>
-          <p className="mt-1 text-sm text-zinc-400">
-            {program.objetivo ?? "Objetivo por definir"}
-          </p>
-          <div className="mt-4 flex flex-wrap gap-2 text-xs">
-            <span className="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300">
-              Nivel: {program.nivel ?? "—"}
-            </span>
-            <span className="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300">
-              {program.duracion_semanas ?? "?"} semanas
-            </span>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {programs.map((program) => (
+              <div
+                key={program.id}
+                className="flex flex-col rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6"
+              >
+                <h2 className="text-xl font-extrabold">{program.nombre}</h2>
+                <p className="mt-1 text-sm text-zinc-400">
+                  {program.objetivo ?? "Objetivo por definir"}
+                </p>
+                <div className="mt-4 flex flex-wrap gap-2 text-xs">
+                  <span className="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300">
+                    Nivel: {program.nivel ?? "—"}
+                  </span>
+                  <span className="rounded-full border border-zinc-700 px-3 py-1 text-zinc-300">
+                    {program.duracion_semanas ?? "?"} semanas
+                  </span>
+                </div>
+                <p className="mt-6 text-sm text-zinc-500">
+                  Abrí tu programa para ver las semanas y cada sesión de
+                  entrenamiento.
+                </p>
+                <a
+                  href="/alumno/programa"
+                  className="mt-4 inline-flex rounded-lg bg-white px-5 py-2.5 text-sm font-bold text-zinc-950 transition hover:bg-zinc-200"
+                >
+                  Ver mi programa →
+                </a>
+              </div>
+            ))}
           </div>
-          <p className="mt-6 text-sm text-zinc-500">
-            Abrí tu programa para ver las semanas y cada sesión de
-            entrenamiento.
-          </p>
-          <a
-            href="/alumno/programa"
-            className="mt-4 inline-flex rounded-lg bg-white px-5 py-2.5 text-sm font-bold text-zinc-950 transition hover:bg-zinc-200"
-          >
-            Ver mi programa →
-          </a>
         </section>
       ) : (
         <section className="rounded-2xl border border-dashed border-zinc-800 bg-zinc-900/20 p-6">
-          <h2 className="text-lg font-bold">Aún no tenés programa</h2>
+          <h2 className="text-lg font-bold">Aún no tenés programas</h2>
           <p className="mt-1 text-sm text-zinc-400">
-            Elegí uno del catálogo o creá el tuyo con los ejercicios de la biblioteca.
+            Elegí los programas del catálogo o creá los tuyos con los ejercicios de la biblioteca.
           </p>
           <div className="mt-4">
             <a
