@@ -5,11 +5,14 @@ export const CATEGORIAS = [
   { value: "planche", label: "Planche" },
   { value: "front_lever", label: "Front Lever" },
   { value: "power_free", label: "Combos Power Free" },
+  { value: "musculacion", label: "Musculación" },
 ] as const;
 
 export function categoriaLabel(cat: string | null) {
+  if (cat === "musculacion") return "Musculación";
   if (cat === "planche") return "Planche";
   if (cat === "front_lever") return "Front Lever";
+  if (cat === "power_free") return "POWER FREE · LIBERADO";
   return "Calistenia General";
 }
 
@@ -37,7 +40,11 @@ export const FAMILIA_ASESORIAS: Record<
 
 export const PROGRAMA_PLANCHE_NOMBRE = "Planche / Front Lever";
 
-export function esProgramaPlanificable(nombre: string | null): boolean {
+export function esProgramaPlanificable(
+  nombre: string | null,
+  categoria: string | null | undefined = null
+): boolean {
+  if (categoria === "planche" || categoria === "front_lever") return true;
   if (nombre === PROGRAMA_PLANCHE_NOMBRE) return true;
   return Object.prototype.hasOwnProperty.call(FAMILIA_ASESORIAS, nombre ?? "");
 }
@@ -47,13 +54,19 @@ export function labelSesion(dia: number | null, nombre: string | null): string {
   if (dia == null) return n || "Sesión";
   const base = `Día ${dia}`;
   if (!n) return base;
-  const norm = n
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLowerCase()
-    .replace(/\s+/g, " ")
-    .trim();
-  if (norm === `dia ${dia}`) return base;
+  const norm = (s: string) =>
+    s
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/\s+/g, " ")
+      .trim();
+  const prefixo = norm(n).match(/^dia\s+(\d+)\s*[·|:.-]?\s*/);
+  if (prefixo && Number(prefixo[1]) === dia) {
+    const resto = n.replace(/^Día\s+\d+\s*[·|:.-]?\s*/i, "").trim();
+    return resto ? `${base} · ${resto}` : base;
+  }
+  if (norm(n) === `dia ${dia}`) return base;
   return `${base} · ${n}`;
 }
 
