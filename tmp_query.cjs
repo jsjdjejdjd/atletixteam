@@ -1,0 +1,1 @@
+﻿const s = require("node_modules/@supabase/supabase-js/dist/main/index.js").createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {auth:{persistSession:false}}); s.from("programs").select("id, nombre, categoria, nivel, entrenador_id").order("categoria").then(r => { console.log(JSON.stringify(r.data, null, 1)); });

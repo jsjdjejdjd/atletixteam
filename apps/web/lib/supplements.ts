@@ -22,7 +22,7 @@ export const PRODUCTOS: Producto[] = [
   {
     id: "proteina-1kg",
     marca: "Star Nutrition",
-    nombre: "Proteína 1kg — Chocolate",
+    nombre: "Proteína 1kg",
     descripcion: "Whey protein para recuperación y masa muscular.",
     precio: 65000,
     imagen: "/suplementos/proteina-1kg.webp",
@@ -49,7 +49,7 @@ export const PRODUCTOS: Producto[] = [
     nombre: "Combo Proteína 1kg + Creatina",
     descripcion: "Proteína (gusto a elección / stock) + creatina 300g.",
     etiqueta: "Ahorrás más",
-    precio: 92000,
+    precio: 93000,
     imagen: "/suplementos/combo.webp",
   },
 ];
