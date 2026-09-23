@@ -63,12 +63,12 @@ export default async function EditarSesionPage({
   const { data: program } = week
     ? await supabase
         .from("programs")
-        .select("id, nombre")
+        .select("id, nombre, categoria")
         .eq("id", week.program_id)
         .single()
     : { data: null };
 
-  if (!program || !esProgramaPlanificable(program.nombre)) {
+  if (!program || !esProgramaPlanificable(program.nombre, program.categoria)) {
     return (
       <div className="flex flex-col gap-6">
         <EmptyState

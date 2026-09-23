@@ -4,6 +4,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button, Field, TextInput } from "@/components/ui";
+import {
+  iniciarCronometroNotificacion,
+  detenerCronometroNotificacion,
+} from "@/lib/rest-notifications";
 
 type Serie = {
   serie: number;
@@ -89,21 +93,29 @@ function aplicarDraft(base: DraftData, draft: DraftData): DraftData {
   return next;
 }
 
-function playBeep() {
+function playBeep(opts?: { fuerte?: boolean; agudo?: boolean }) {
   try {
-    const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+    const Ctor =
+      window.AudioContext ??
+      (window as unknown as { webkitAudioContext?: typeof AudioContext })
+        .webkitAudioContext;
     if (!Ctor) return;
     const ctx = new Ctor();
-    const o = ctx.createOscillator();
-    const g = ctx.createGain();
-    o.connect(g);
-    g.connect(ctx.destination);
-    o.type = "sine";
-    o.frequency.value = 880;
-    g.gain.setValueAtTime(0.25, 0);
-    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.5);
-    o.start();
-    o.stop(ctx.currentTime + 0.5);
+    const freqs = opts?.fuerte ? [523.25, 659.25, 783.99] : opts?.agudo ? [1046.5] : [880];
+    freqs.forEach((f, i) => {
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.connect(g);
+      g.connect(ctx.destination);
+      o.type = opts?.fuerte ? "square" : "sine";
+      o.frequency.value = f;
+      const t0 = ctx.currentTime + i * 0.12;
+      g.gain.setValueAtTime(0.001, t0);
+      g.gain.exponentialRampToValueAtTime(opts?.fuerte ? 0.5 : 0.25, t0 + 0.02);
+      g.gain.exponentialRampToValueAtTime(0.001, t0 + (opts?.fuerte ? 0.35 : 0.12));
+      o.start(t0);
+      o.stop(t0 + (opts?.fuerte ? 0.36 : 0.13));
+    });
   } catch {
     /* sin audio */
   }
@@ -113,6 +125,29 @@ function formatTimerTime(total: number) {
   const m = Math.floor(total / 60);
   const s = total % 60;
   return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+// Helper del timer de descanso a nivel módulo (fuera del análisis de hooks).
+const REST_KEY = "atletix:rest";
+
+function restEndsAt(seconds: number): number {
+  return Date.now() + seconds * 1000;
+}
+
+function restRemaining(endsAt: number): number {
+  return Math.max(0, Math.ceil((endsAt - Date.now()) / 1000));
+}
+
+function readStoredRest(): { endsAt: number; remaining: number } | null {
+  try {
+    const raw = sessionStorage.getItem(REST_KEY);
+    if (!raw) return null;
+    const { endsAt } = JSON.parse(raw) as { endsAt?: number };
+    if (typeof endsAt !== "number") return null;
+    return { endsAt, remaining: restRemaining(endsAt) };
+  } catch {
+    return null;
+  }
 }
 
 export function LiveWorkout({
@@ -447,34 +482,150 @@ export function LiveWorkout({
     [data]
   );
 
-  const [timerRemaining, setTimerRemaining] = useState<number | null>(null);
-  const [timerRunning, setTimerRunning] = useState(false);
+  const [timerRemaining, setTimerRemaining] = useState<number | null>(() => readStoredRest()?.remaining ?? null);
+  const [timerRunning, setTimerRunning] = useState<boolean>(() => {
+    const stored = readStoredRest();
+    return !!stored && stored.remaining > 0;
+  });
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
+  const timerEndRef = useRef<number | null>(() => readStoredRest()?.endsAt ?? null);
+  const timerFinishedRef = useRef(false);
+  const warned5sRef = useRef(false);
+
+  // Wake Lock: evita que la pantalla se apague durante el descanso,
+  // así el cronómetro queda visible sobre la pantalla de bloqueo.
+  const releaseWakeLock = useCallback(() => {
+    wakeLockRef.current?.release?.().catch(() => {});
+    wakeLockRef.current = null;
+  }, []);
+
+  const persistRest = useCallback((endsAt: number | null, running: boolean, remaining: number | null) => {
+    try {
+      if (endsAt === null || remaining === null || !running) {
+        sessionStorage.removeItem(REST_KEY);
+      } else {
+        sessionStorage.setItem(REST_KEY, JSON.stringify({ endsAt, remaining }));
+      }
+    } catch { /* sin storage */ }
+  }, []);
+
+  const notifyRestFinished = useCallback(async () => {
+    try {
+      if (!("Notification" in window)) return;
+      if (Notification.permission === "default") {
+        const res = await Notification.requestPermission();
+        if (res !== "granted") return;
+      }
+      if (Notification.permission !== "granted") return;
+      // Si la app está en foco, el overlay y el beep ya avisan; no duplicar.
+      if (document.visibilityState === "visible" && document.hasFocus()) return;
+      if ("serviceWorker" in navigator) {
+        const reg = await navigator.serviceWorker.ready;
+        await reg.showNotification("Descanso terminado", {
+          body: "A entrenar de nuevo 💪",
+          tag: "atletix-rest",
+        });
+      } else {
+        new Notification("Descanso terminado", {
+          body: "A entrenar de nuevo 💪",
+          tag: "atletix-rest",
+        });
+      }
+    } catch { /* sin notificaciones */ }
+  }, []);
+
+  const finishRest = useCallback(() => {
+    if (timerFinishedRef.current) return;
+    timerFinishedRef.current = true;
+    releaseWakeLock();
+    persistRest(null, false, null);
+    playBeep({ fuerte: true });
+    notifyRestFinished();
+    setTimerRunning(false);
+  }, [releaseWakeLock, persistRest, notifyRestFinished]);
 
   useEffect(() => {
-    if (timerRemaining === null || !timerRunning) return;
-    const id = setInterval(() => {
-      setTimerRemaining((r) => {
-        if (r === null) return null;
-        const next = Math.max(r - 1, 0);
-        if (next === 0) playBeep();
-        return next;
-      });
-    }, 1000);
-    return () => clearInterval(id);
-  }, [timerRemaining, timerRunning]);
+    if (!timerRunning || timerEndRef.current === null) return;
+    const tick = () => {
+      const end = timerEndRef.current;
+      if (end === null) return;
+      const next = restRemaining(end);
+      setTimerRemaining((prev) => (prev === null || next !== prev ? next : prev));
+      if (next === 5 && !warned5sRef.current) {
+        warned5sRef.current = true;
+        playBeep({ agudo: true });
+      } else if (next < 5) {
+        warned5sRef.current = true;
+      }
+      if (next === 0) finishRest();
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    const onVis = () => {
+      if (document.visibilityState === "visible") tick();
+    };
+    const onFocus = () => tick();
+    document.addEventListener("visibilitychange", onVis);
+    window.addEventListener("focus", onFocus);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [timerRunning, finishRest]);
+
+  useEffect(() => {
+    if (timerRemaining === null) return;
+    if (timerRunning) {
+      if ("wakeLock" in navigator && !wakeLockRef.current) {
+        (navigator as Navigator & { wakeLock: { request: (t?: "screen") => Promise<WakeLockSentinel> } })
+          .wakeLock
+          .request("screen")
+          .then((s) => {
+            wakeLockRef.current = s;
+            s.addEventListener("release", () => {
+              wakeLockRef.current = null;
+            });
+          })
+          .catch(() => {});
+      }
+    } else {
+      releaseWakeLock();
+    }
+  }, [timerRunning, timerRemaining, releaseWakeLock]);
 
   function startTimer(seconds: number) {
+    timerFinishedRef.current = false;
+    const endsAt = restEndsAt(seconds);
+    timerEndRef.current = endsAt;
     setTimerRemaining(seconds);
     setTimerRunning(true);
+    persistRest(endsAt, true, seconds);
+    void iniciarCronometroNotificacion(seconds);
   }
 
   function toggleTimer() {
-    setTimerRunning((r) => !r);
+    if (timerRunning) {
+      persistRest(null, false, null);
+      setTimerRunning(false);
+      void detenerCronometroNotificacion();
+    } else if (timerRemaining !== null && timerRemaining > 0) {
+      const endsAt = restEndsAt(timerRemaining);
+      timerEndRef.current = endsAt;
+      setTimerRunning(true);
+      persistRest(endsAt, true, timerRemaining);
+      void iniciarCronometroNotificacion(timerRemaining);
+    }
   }
 
   function stopTimer() {
+    timerFinishedRef.current = false;
+    timerEndRef.current = null;
+    releaseWakeLock();
     setTimerRunning(false);
     setTimerRemaining(null);
+    persistRest(null, false, null);
+    void detenerCronometroNotificacion();
   }
 
   async function handleFinish() {
@@ -738,11 +889,107 @@ export function LiveWorkout({
           {error}
         </p>
       )}
+
+      {timerRemaining !== null ? (
+        <RestLockOverlay
+          remaining={timerRemaining}
+          running={timerRunning}
+          onToggle={toggleTimer}
+          onStart={startTimer}
+          onStop={stopTimer}
+        />
+      ) : null}
     </div>
   );
 }
 
 const REST_PRESETS_MIN = [1, 2, 3, 5];
+
+/**
+ * Pantalla de bloqueo del descanso: overlay fullscreen con el cronómetro en
+ * grande. Se muestra automáticamente cuando el descanso está activo o terminó.
+ * Al llegar a 0 suena el beep + notificación, y un toque en cualquier parte
+ * cierra la pantalla; mientras corre, tocás la pantalla no hace nada (evita
+ * toques accidentales) y los controles quedan abajo.
+ */
+function RestLockOverlay({
+  remaining,
+  running,
+  onToggle,
+  onStart,
+  onStop,
+}: {
+  remaining: number;
+  running: boolean;
+  onToggle: () => void;
+  onStart: (s: number) => void;
+  onStop: () => void;
+}) {
+  const finished = remaining === 0;
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Descanso"
+      onPointerDown={(e) => {
+        if (finished) onStop();
+        e.stopPropagation();
+      }}
+      className="fixed inset-0 z-50 flex select-none flex-col items-center justify-center gap-10 bg-zinc-950/98 px-6 backdrop-blur"
+    >
+      <div className="flex flex-col items-center gap-2">
+        <span className="text-sm font-bold uppercase tracking-[0.3em] text-zinc-500">
+          {finished ? "Descanso terminado" : "Descanso"}
+        </span>
+        <span
+          className={`font-mono text-8xl font-black tabular-nums sm:text-9xl ${
+            finished ? "text-emerald-300" : "text-white"
+          }`}
+        >
+          {formatTimerTime(remaining)}
+        </span>
+        {finished ? (
+          <p className="mt-2 text-base font-semibold text-emerald-300">
+            ¡A entrenar de nuevo! tocá para continuar
+          </p>
+        ) : (
+          <p className="mt-2 text-sm text-zinc-500">
+            tocá la pantalla recién cuando termine
+          </p>
+        )}
+      </div>
+
+      {!finished ? (
+        <div className="flex items-center gap-3">
+          <Button
+            variant="secondary"
+            type="button"
+            className="px-6 py-3 text-base"
+            onClick={onToggle}
+          >
+            {running ? "Pausa" : "Reanudar"}
+          </Button>
+          <Button
+            variant="secondary"
+            type="button"
+            className="px-6 py-3 text-base"
+            onClick={() => onStart(remaining + 60)}
+          >
+            +1 min
+          </Button>
+          <button
+            onClick={onStop}
+            className="rounded-xl px-4 py-3 text-sm font-medium text-zinc-500 transition hover:text-red-400"
+            title="Detener descanso"
+          >
+            ✕
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 function RestTimerBar({
   remaining,

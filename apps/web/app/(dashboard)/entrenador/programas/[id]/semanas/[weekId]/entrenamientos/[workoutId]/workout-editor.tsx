@@ -78,18 +78,18 @@ export function WorkoutEditor({
         </div>
       ) : null}
 
-      <ol className="flex flex-col gap-4">
-        {exercises.map((ex, index) => (
-          <ExerciseRow key={ex.id} index={index} exercise={ex} exercises={exercises} />
-        ))}
-      </ol>
-
       <AddExerciseForm
         workoutId={workoutId}
         library={library}
         nextOrder={exercises.length + 1}
         onSaved={() => router.refresh()}
       />
+
+      <ol className="flex flex-col gap-4">
+        {exercises.map((ex, index) => (
+          <ExerciseRow key={ex.id} index={index} exercise={ex} exercises={exercises} />
+        ))}
+      </ol>
 
       {logs.length > 0 ? (
         <SectionCard title="Registros de tus alumnos">

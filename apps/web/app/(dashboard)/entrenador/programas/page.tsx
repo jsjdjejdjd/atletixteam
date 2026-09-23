@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
 import { LinkButton, EmptyState } from "@/components/ui";
-import { categoriaLabel, FAMILIA_ASESORIAS } from "@/lib/levels";
+import { categoriaLabel } from "@/lib/levels";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +16,7 @@ type Program = {
   activo: boolean;
 };
 
-const ORDER = ["general", "planche", "front_lever"];
+const ORDER = ["general", "power_free", "planche", "front_lever"];
 
 export default async function ProgramasPage() {
   const { supabase, user } = await requireProfile();
@@ -28,8 +28,8 @@ export default async function ProgramasPage() {
     .order("created_at", { ascending: false });
 
   const list = (programs ?? []) as Program[];
-  const listAsesorias = list.filter((p) => p.nombre in FAMILIA_ASESORIAS);
-  const visibles = list.filter((p) => !(p.nombre in FAMILIA_ASESORIAS));
+  const listAsesorias = list.filter((p) => (p.categoria ?? "general") === "asesoria_online");
+  const visibles = list.filter((p) => (p.categoria ?? "general") !== "asesoria_online");
 
   const grupos = ORDER.map((cat) => ({
     cat,
