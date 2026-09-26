@@ -488,7 +488,7 @@ export function LiveWorkout({
     return !!stored && stored.remaining > 0;
   });
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
-  const timerEndRef = useRef<number | null>(() => readStoredRest()?.endsAt ?? null);
+  const timerEndRef = useRef<number | null>(readStoredRest()?.endsAt ?? null);
   const timerFinishedRef = useRef(false);
   const warned5sRef = useRef(false);
 

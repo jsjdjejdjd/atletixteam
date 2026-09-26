@@ -76,7 +76,7 @@ export default function LoginPage() {
 
       <div className="text-right">
         <Link
-          href="/login"
+          href="/recuperar"
           className="text-xs text-zinc-500 transition hover:text-zinc-300"
         >
           ¿Olvidaste tu contraseña?
