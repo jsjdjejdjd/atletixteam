@@ -89,6 +89,48 @@ export type ProgramaCargado = {
 };
 
 // ============================================================
+// HELPERS DE CARGA DE SEMANAS
+// ============================================================
+
+/** Clon profundo de una sesión (los ejercicios NO se comparten por referencia). */
+function clonarSesion(s: SesionPrograma): SesionPrograma {
+  return {
+    ...s,
+    combo: s.combo?.map((c) => ({ ...c })),
+    ejercicios: s.ejercicios?.map((e) => ({ ...e })),
+  };
+}
+
+/**
+ * Devuelve las semanas 2 (base) + 3 y 4 (descarga) a partir de un patrón.
+ * La semana 2 arranca clonando la semana 1 como base editable: ajustá ahí
+ * series/reps/RIR/descanso y las semanas de descarga se regeneran solas.
+ */
+export function semanasDesde(base: SemanaPrograma[]): SemanaPrograma[] {
+  const s1 = base[0];
+  const s2: SemanaPrograma = {
+    ...clonarSemana(s1),
+    numero: 2,
+    objetivo: "Subir volumen de trabajo. TODO: ajustar la carga a este nivel.",
+  };
+  return [s1, s2, descargaDesde(s2, 3), descargaDesde(s2, 4)];
+}
+
+function clonarSemana(s: SemanaPrograma): SemanaPrograma {
+  return { ...s, sesiones: s.sesiones.map(clonarSesion) };
+}
+
+/** Semana de descarga: mismo contenido, marcada con `es_descarga` y objetivo propio. */
+export function descargaDesde(base: SemanaPrograma, numero: number): SemanaPrograma {
+  return {
+    ...clonarSemana(base),
+    numero,
+    es_descarga: true,
+    objetivo: "Semana de descarga: mismo contenido, más liviano y con más recuperación.",
+  };
+}
+
+// ============================================================
 // PROGRAMA GENERAL · PRINCIPIANTE
 // ============================================================
 export const PROGRAMA_GENERAL_PRINCIPIANTE: ProgramaDef = {
@@ -259,7 +301,7 @@ export const PROGRAMA_GENERAL_INTERMEDIO: ProgramaDef = {
   descripcion: "Volumen intermedio con primer contacto serio a planche y front lever.",
   duracion_semanas: 6,
   activo: true,
-  semanas: [
+  semanas: semanasDesde([
     {
       numero: 1,
       objetivo: "Bloque de fuerza base.",
@@ -306,24 +348,7 @@ export const PROGRAMA_GENERAL_INTERMEDIO: ProgramaDef = {
         },
       ],
     },
-    {
-      numero: 6,
-      objetivo: "Test intermedio completo.",
-      sesiones: [
-        {
-          nombre: "Combo final intermedio",
-          dia: 3,
-          tipo: "combo",
-          combo: [
-            { elemento: "Plancha Straddle", unidad: "segundos", cantidad: 15, equipo: "suelo_supino" },
-            { elemento: "Front Lever Straddle", unidad: "segundos", cantidad: 15, equipo: "barra_supino" },
-            { elemento: "Dominadas lastradas", unidad: "reps", cantidad: 6, equipo: "barra_prono" },
-            { elemento: "Fondos en anillas", unidad: "reps", cantidad: 6, equipo: "anillas" },
-          ],
-        },
-      ],
-    },
-  ],
+  ]),
 };
 
 // ============================================================
@@ -337,7 +362,7 @@ export const PROGRAMA_GENERAL_AVANZADO: ProgramaDef = {
   descripcion: "Entrenamiento avanzado integrando estáticos altos y musculación.",
   duracion_semanas: 8,
   activo: true,
-  semanas: [
+  semanas: semanasDesde([
     {
       numero: 1,
       objetivo: "Arranque de bloque avanzado.",
@@ -384,24 +409,7 @@ export const PROGRAMA_GENERAL_AVANZADO: ProgramaDef = {
         },
       ],
     },
-    {
-      numero: 8,
-      objetivo: "Test avanzado completo.",
-      sesiones: [
-        {
-          nombre: "Combo final avanzado",
-          dia: 4,
-          tipo: "combo",
-          combo: [
-            { elemento: "Plancha Full", unidad: "segundos", cantidad: 10, equipo: "suelo_supino" },
-            { elemento: "Front Lever Full", unidad: "segundos", cantidad: 10, equipo: "barra_supino" },
-            { elemento: "Muscle Up", unidad: "reps", cantidad: 4, equipo: "barra_supino" },
-            { elemento: "Fondos en anillas", unidad: "reps", cantidad: 8, equipo: "anillas" },
-          ],
-        },
-      ],
-    },
-  ],
+  ]),
 };
 
 // ============================================================
@@ -415,7 +423,7 @@ export const PROGRAMA_ASESORIA_ONLINE_PLANCHE_INTERMEDIO: ProgramaDef = {
   descripcion: "Variante de asesoría online del módulo Planche / Front Lever.",
   duracion_semanas: 6,
   activo: true,
-  semanas: [
+  semanas: semanasDesde([
     {
       numero: 1,
       objetivo: "Semana 1 online · sesiones guiadas.",
@@ -442,7 +450,7 @@ export const PROGRAMA_ASESORIA_ONLINE_PLANCHE_INTERMEDIO: ProgramaDef = {
         },
       ],
     },
-  ],
+  ]),
 };
 
 // ============================================================
@@ -456,7 +464,7 @@ export const PROGRAMA_ASESORIA_ONLINE_PLANCHE_AVANZADO: ProgramaDef = {
   descripcion: "Variante avanzada de asesoría online del módulo Planche / Front Lever.",
   duracion_semanas: 6,
   activo: true,
-  semanas: [
+  semanas: semanasDesde([
     {
       numero: 1,
       objetivo: "Semana 1 online · estáticos altos.",
@@ -483,7 +491,7 @@ export const PROGRAMA_ASESORIA_ONLINE_PLANCHE_AVANZADO: ProgramaDef = {
         },
       ],
     },
-  ],
+  ]),
 };
 
 export const PROGRAMAS_CATALOGO: ProgramaDef[] = [
