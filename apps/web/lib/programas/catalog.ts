@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // ATLETIX · PROGRAMAS · CATÁLOGO EN CÓDIGO (única fuente de verdad)
 // ============================================================
 // Este archivo es el "editor general de todos los programas":
@@ -131,10 +131,10 @@ export function descargaDesde(base: SemanaPrograma, numero: number): SemanaProgr
 }
 
 // ============================================================
-// PROGRAMA GENERAL · PRINCIPIANTE
+// CALISTENIA 1 · PRINCIPIANTE (estructura propia: 4 semanas con skills)
 // ============================================================
 export const PROGRAMA_GENERAL_PRINCIPIANTE: ProgramaDef = {
-  nombre: "Calistenia General · Principiante",
+  nombre: "Calistenia 1",
   categoria: "general",
   nivel: "Principiante",
   objetivo: "Fundamentos de empuje, tirón, core y piernas en 4 semanas.",
@@ -271,7 +271,7 @@ export const PROGRAMA_GENERAL_PRINCIPIANTE: ProgramaDef = {
           ejercicios: [
             { nombre: "Dominadas", series: 4, repeticiones: "6-8", rir: 2, descanso_segundos: 120 },
             { nombre: "Remo anillas", series: 4, repeticiones: "8-12", rir: 2, descanso_segundos: 90 },
-            { nombre: "Elevación de piernas colgado", series: 4, repeticiones: "8-12", rir: 2, descanso_segundos: 60 },
+            { nombre: "Elevaciones de piernas colgado", series: 4, repeticiones: "8-12", rir: 2, descanso_segundos: 60 },
           ],
         },
         {
@@ -291,10 +291,10 @@ export const PROGRAMA_GENERAL_PRINCIPIANTE: ProgramaDef = {
 };
 
 // ============================================================
-// PROGRAMA GENERAL · INTERMEDIO
+// CALISTENIA 2 · INTERMEDIO
 // ============================================================
 export const PROGRAMA_GENERAL_INTERMEDIO: ProgramaDef = {
-  nombre: "Calistenia General · Intermedio",
+  nombre: "Calistenia 2",
   categoria: "general",
   nivel: "Intermedio",
   objetivo: "Aumentar fuerza hacia skills de tirón y empuje.",
@@ -313,7 +313,7 @@ export const PROGRAMA_GENERAL_INTERMEDIO: ProgramaDef = {
           ejercicios: [
             { nombre: "Flexiones lastradas", series: 4, repeticiones: "6-10", rir: 2, descanso_segundos: 120 },
             { nombre: "Fondos en paralelas", series: 4, repeticiones: "6-10", rir: 2, descanso_segundos: 120 },
-            { nombre: "Pike push up", series: 4, repeticiones: "6-10", rir: 2, descanso_segundos: 120 },
+            { nombre: "Flexión pike", series: 4, repeticiones: "6-10", rir: 2, descanso_segundos: 120 },
           ],
         },
         {
@@ -322,7 +322,7 @@ export const PROGRAMA_GENERAL_INTERMEDIO: ProgramaDef = {
           tipo: "tradicional",
           ejercicios: [
             { nombre: "Dominadas lastradas", series: 4, repeticiones: "5-8", rir: 2, descanso_segundos: 150 },
-            { nombre: "Remo en anillas", series: 4, repeticiones: "8-12", rir: 2, descanso_segundos: 120 },
+            { nombre: "Remo anillas", series: 4, repeticiones: "8-12", rir: 2, descanso_segundos: 120 },
             { nombre: "Curl con barra", series: 3, repeticiones: "8-12", rir: 2, descanso_segundos: 90 },
           ],
         },
@@ -352,10 +352,10 @@ export const PROGRAMA_GENERAL_INTERMEDIO: ProgramaDef = {
 };
 
 // ============================================================
-// PROGRAMA GENERAL · AVANZADO
+// CALISTENIA 3 · AVANZADO
 // ============================================================
 export const PROGRAMA_GENERAL_AVANZADO: ProgramaDef = {
-  nombre: "Calistenia General · Avanzado",
+  nombre: "Calistenia 3",
   categoria: "general",
   nivel: "Avanzado",
   objetivo: "Compilar fuerza de planche, front lever y skills dinámicos.",
@@ -404,7 +404,7 @@ export const PROGRAMA_GENERAL_AVANZADO: ProgramaDef = {
           ejercicios: [
             { nombre: "Front Lever Full", series: 5, repeticiones: "5-15 s", rir: 2, descanso_segundos: 120 },
             { nombre: "L-Sit", series: 4, repeticiones: "10-30 s", rir: 2, descanso_segundos: 90 },
-            { nombre: "Elevación de piernas colgado", series: 4, repeticiones: "10-15", rir: 2, descanso_segundos: 90 },
+            { nombre: "Elevaciones de piernas colgado", series: 4, repeticiones: "10-15", rir: 2, descanso_segundos: 90 },
           ],
         },
       ],

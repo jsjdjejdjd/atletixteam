@@ -16,7 +16,8 @@ import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { cargarProgramas } from "../lib/programas/cargar-programas";
 
-const envLocal = resolve(__dirname ?? process.cwd(), ".env.local");
+// .env.local vive en apps/web (un nivel arriba de este script).
+const envLocal = resolve(__dirname, "..", ".env.local");
 if (existsSync(envLocal)) {
   for (const linea of readFileSync(envLocal, "utf-8").split(/\r?\n/)) {
     const m = linea.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/);
