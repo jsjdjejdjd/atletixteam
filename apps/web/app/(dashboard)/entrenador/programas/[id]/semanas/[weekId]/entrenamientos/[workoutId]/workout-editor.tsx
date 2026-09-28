@@ -81,7 +81,7 @@ export function WorkoutEditor({
       <AddExerciseForm
         workoutId={workoutId}
         library={library}
-        nextOrder={exercises.length + 1}
+        nextOrder={exercises.reduce((max, e) => Math.max(max, e.orden), 0) + 1}
         onSaved={() => router.refresh()}
       />
 
@@ -386,28 +386,32 @@ function ExerciseRow({ index, exercise, exercises }: { index: number; exercise: 
     router.refresh();
   }
 
-  async function handleMoveUp() {
-    if (index === 0) return;
-    const prev = exercises[index - 1];
-    const { error } = await supabase
-      .from("workout_exercises")
-      .upsert([
-        { id: exercise.id, orden: prev.orden },
-        { id: prev.id, orden: exercise.orden },
-      ]);
-    if (!error) router.refresh();
-  }
+  const [moving, setMoving] = useState<"up" | "down" | null>(null);
+  const [moveError, setMoveError] = useState<string | null>(null);
 
-  async function handleMoveDown() {
-    if (index === exercises.length - 1) return;
-    const next = exercises[index + 1];
-    const { error } = await supabase
-      .from("workout_exercises")
-      .upsert([
-        { id: exercise.id, orden: next.orden },
-        { id: next.id, orden: exercise.orden },
-      ]);
-    if (!error) router.refresh();
+  async function handleMove(direccion: -1 | 1) {
+    const destino = index + direccion;
+    if (destino < 0 || destino >= exercises.length || moving) return;
+    setMoving(direccion === -1 ? "up" : "down");
+    setMoveError(null);
+
+    const ordenados = exercises.map((e) => e.id);
+    [ordenados[index], ordenados[destino]] = [ordenados[destino], ordenados[index]];
+
+    const resultados = await Promise.all(
+      ordenados.map((id, i) =>
+        supabase.from("workout_exercises").update({ orden: i + 1 }).eq("id", id)
+      )
+    );
+    const error = resultados.find((r) => r.error)?.error;
+
+    if (error) {
+      setMoveError(error.message);
+      setMoving(null);
+      return;
+    }
+    setMoving(null);
+    router.refresh();
   }
 
   return (
@@ -425,16 +429,16 @@ function ExerciseRow({ index, exercise, exercises }: { index: number; exercise: 
         <div className="flex items-center gap-1">
           <button
             type="button"
-            onClick={handleMoveUp}
-            disabled={index === 0}
+            onClick={() => handleMove(-1)}
+            disabled={index === 0 || moving !== null}
             className="rounded-lg border border-zinc-700 px-2 py-1 text-xs text-zinc-300 transition hover:border-zinc-500 disabled:opacity-30"
           >
             ▲
           </button>
           <button
             type="button"
-            onClick={handleMoveDown}
-            disabled={index === exercises.length - 1}
+            onClick={() => handleMove(1)}
+            disabled={index === exercises.length - 1 || moving !== null}
             className="rounded-lg border border-zinc-700 px-2 py-1 text-xs text-zinc-300 transition hover:border-zinc-500 disabled:opacity-30"
           >
             ▼
@@ -447,6 +451,12 @@ function ExerciseRow({ index, exercise, exercises }: { index: number; exercise: 
           </button>
         </div>
       </div>
+
+      {moveError ? (
+        <p className="mb-4 rounded-lg border border-red-900/60 bg-red-950/40 px-3 py-2 text-xs text-red-300">
+          No se pudo reordenar: {moveError}
+        </p>
+      ) : null}
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
         <RowField label="Series" value={form.series} onChange={(v) => set("series", v)} />
