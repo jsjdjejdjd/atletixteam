@@ -42,7 +42,7 @@ export default async function EntrenamientoAlumnoPage({
 
   const hoy = new Date().toISOString().slice(0, 10);
 
-  const [workoutRes, weRes, libRes] = await Promise.all([
+  const [workoutRes, weRes, libRes, draftRes] = await Promise.all([
     supabase
       .from("workouts")
       .select("id, nombre, dia, week_id, es_combo")
@@ -57,6 +57,13 @@ export default async function EntrenamientoAlumnoPage({
       .from("exercises")
       .select("id, nombre, video_url")
       .order("nombre", { ascending: true }),
+    // No depende de nada de arriba, por eso viaja en la misma tanda.
+    supabase
+      .from("workout_drafts")
+      .select("data, updated_at")
+      .eq("athlete_id", user.id)
+      .eq("workout_id", workoutId)
+      .maybeSingle(),
   ]);
 
   const workout = workoutRes.data;
@@ -66,20 +73,40 @@ export default async function EntrenamientoAlumnoPage({
 
   const raw = (weRes.data ?? []) as We[];
   const baseIds = raw.filter((w) => !w.athlete_id).map((w) => w.id);
+  const allIds = raw.map((w) => w.id);
 
-  const { data: overridesData } = baseIds.length
-    ? await supabase
-        .from("workout_exercise_overrides")
-        .select("workout_exercise_id, oculto, orden")
-        .eq("athlete_id", user.id)
-        .in("workout_exercise_id", baseIds)
-    : {
-        data: [] as {
+  // overrides y logs dependen solo de raw, asi que van juntos. Los logs se piden
+  // para todas las filas (no solo las visibles): el filtro de oculto se aplica
+  // despues en memoria, asi el resultado no cambia pero se ahorra una tanda.
+  const [overridesData, logsRes] = await Promise.all([
+    baseIds.length
+      ? supabase
+          .from("workout_exercise_overrides")
+          .select("workout_exercise_id, oculto, orden")
+          .eq("athlete_id", user.id)
+          .in("workout_exercise_id", baseIds)
+          .then((r) => r.data)
+      : Promise.resolve([] as {
           workout_exercise_id: string;
           oculto: boolean;
           orden: number | null;
-        }[],
-      };
+        }[]),
+    allIds.length
+      ? supabase
+          .from("workout_logs")
+          .select("id, workout_exercise_id, series_data, comentarios, completado")
+          .eq("athlete_id", user.id)
+          .eq("fecha", hoy)
+          .in("workout_exercise_id", allIds)
+          .then((r) => r.data)
+      : Promise.resolve([] as {
+          id: string;
+          workout_exercise_id: string;
+          series_data: unknown;
+          comentarios: string | null;
+          completado: boolean;
+        }[]),
+  ]);
 
   const overrideMap = new Map(
     (overridesData ?? []).map((o) => [o.workout_exercise_id, o])
@@ -94,40 +121,17 @@ export default async function EntrenamientoAlumnoPage({
       return a.orden - b.orden;
     });
 
-  const ids = items.map((w) => w.id);
   const lib = new Map(
     (libRes.data ?? []).map(
       (l: { id: string }) => [l.id, l] as const
     )
   );
 
-  const logsRes = ids.length
-    ? await supabase
-        .from("workout_logs")
-        .select("id, workout_exercise_id, series_data, comentarios, completado")
-        .eq("athlete_id", user.id)
-        .eq("fecha", hoy)
-        .in("workout_exercise_id", ids)
-    : {
-        data: [] as {
-          id: string;
-          workout_exercise_id: string;
-          series_data: unknown;
-          comentarios: string | null;
-          completado: boolean;
-        }[],
-      };
-
   const logMap = new Map(
-    (logsRes.data ?? []).map((l) => [l.workout_exercise_id, l])
+    (logsRes ?? []).map((l) => [l.workout_exercise_id, l])
   );
 
-  const { data: draftRow } = await supabase
-    .from("workout_drafts")
-    .select("data, updated_at")
-    .eq("athlete_id", user.id)
-    .eq("workout_id", workoutId)
-    .maybeSingle();
+  const draftRow = draftRes.data;
 
   let draft: {
     data: Record<

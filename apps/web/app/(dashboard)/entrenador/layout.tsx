@@ -1,26 +1,16 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthContext } from "@/lib/auth";
 
 export default async function EntrenadorLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
+  const ctx = await getAuthContext();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  if (!ctx) redirect("/login");
 
-  if (!user) redirect("/login");
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("rol")
-    .eq("id", user.id)
-    .single();
-
-  if (profile && profile.rol !== "admin") redirect("/alumno");
+  if (ctx.profile.rol && ctx.profile.rol !== "admin") redirect("/alumno");
 
   return <>{children}</>;
 }

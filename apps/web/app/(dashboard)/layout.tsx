@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getAuthContext } from "@/lib/auth";
 import { DashboardShell } from "@/components/dashboard-shell";
 
 export default async function DashboardLayout({
@@ -7,28 +7,16 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
+  const ctx = await getAuthContext();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  if (!ctx) redirect("/login");
 
-  if (!user) redirect("/login");
+  const { nombre, apellido, rol } = ctx.profile;
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("id, nombre, apellido, rol")
-    .eq("id", user.id)
-    .single();
-
-  if (!profile) redirect("/login");
-
-  const nombreCompleto = [profile.nombre, profile.apellido]
-    .filter(Boolean)
-    .join(" ");
+  const nombreCompleto = [nombre, apellido].filter(Boolean).join(" ");
 
   return (
-    <DashboardShell rol={profile.rol} nombre={nombreCompleto || "usuario"}>
+    <DashboardShell rol={rol ?? "alumno"} nombre={nombreCompleto || "usuario"}>
       {children}
     </DashboardShell>
   );

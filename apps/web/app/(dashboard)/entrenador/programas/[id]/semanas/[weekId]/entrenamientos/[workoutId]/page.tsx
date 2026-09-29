@@ -29,35 +29,44 @@ export default async function EntrenamientoPage({
   const { id, weekId, workoutId } = await params;
   const { supabase } = await requireProfile();
 
-  const [workoutRes, exercisesRes, libraryRes, logsRes] = await Promise.all([
-    supabase
-      .from("workouts")
-      .select("id, nombre, dia, week_id, es_combo")
-      .eq("id", workoutId)
-      .single(),
-    supabase
-      .from("workout_exercises")
-      .select("*")
-      .eq("workout_id", workoutId)
-      .is("athlete_id", null)
-      .order("orden", { ascending: true }),
-    supabase
-      .from("exercises")
-      .select("id, nombre, categoria, disciplina")
-      .order("nombre", { ascending: true }),
-    (async () => {
-      const weIds = (
-        await supabase.from("workout_exercises").select("id").eq("workout_id", workoutId)
-      ).data?.map((w) => w.id);
-      if (!weIds || weIds.length === 0) return { data: [] };
-      return supabase
+  // Los ids y los perfiles no dependen de los logs, asi que viajan en la misma
+  // tanda que el resto. Antes los logs esperaban a un id-query anidado y los
+  // perfiles esperaban a los logs: tres etapas encadenadas.
+  const [workoutRes, exercisesRes, libraryRes, weIdsRes, profilesRes] =
+    await Promise.all([
+      supabase
+        .from("workouts")
+        .select("id, nombre, dia, week_id, es_combo")
+        .eq("id", workoutId)
+        .single(),
+      supabase
+        .from("workout_exercises")
+        .select("*")
+        .eq("workout_id", workoutId)
+        .is("athlete_id", null)
+        .order("orden", { ascending: true }),
+      supabase
+        .from("exercises")
+        .select("id, nombre, categoria, disciplina")
+        .order("nombre", { ascending: true }),
+      supabase
+        .from("workout_exercises")
+        .select("id")
+        .eq("workout_id", workoutId),
+      // Solo 34 perfiles en total: traerlos todos evita esperar a los logs.
+      supabase.from("profiles").select("id, nombre, apellido, email"),
+    ]);
+
+  const weIds = (weIdsRes.data ?? []).map((w) => w.id);
+
+  const logsRes = weIds.length
+    ? await supabase
         .from("workout_logs")
         .select("id, workout_exercise_id, athlete_id, series_data, comentarios, completado, fecha")
         .in("workout_exercise_id", weIds)
         .order("fecha", { ascending: false })
-        .limit(30);
-    })(),
-  ]);
+        .limit(30)
+    : { data: [] };
 
   const workout = workoutRes.data;
   if (!workout) {
@@ -86,14 +95,8 @@ export default async function EntrenamientoPage({
       : "",
   }));
 
-  const athleteIds = (logsRes.data ?? []).map((l) => l.athlete_id);
-  const { data: profiles } = await supabase
-    .from("profiles")
-    .select("id, nombre, apellido, email")
-    .in("id", athleteIds.length ? athleteIds : ["00000000-0000-0000-0000-000000000000"]);
-
   const profileMap = new Map(
-    (profiles ?? []).map((p) => [
+    (profilesRes.data ?? []).map((p) => [
       p.id,
       [p.nombre, p.apellido].filter(Boolean).join(" ") || p.email || "Alumno",
     ])
