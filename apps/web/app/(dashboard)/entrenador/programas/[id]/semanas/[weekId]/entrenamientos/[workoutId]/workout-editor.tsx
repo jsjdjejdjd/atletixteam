@@ -381,13 +381,29 @@ function ExerciseRow({ index, exercise, exercises }: { index: number; exercise: 
     router.refresh();
   }
 
+  const [deleting, setDeleting] = useState(false);
+
   async function handleDelete() {
-    await supabase.from("workout_exercises").delete().eq("id", exercise.id);
+    if (deleting) return;
+    if (!window.confirm(`¿Eliminar "${exercise.exercise_nombre}" de esta sesión?`)) return;
+    setDeleting(true);
+    setDeleteError(null);
+    const { error } = await supabase
+      .from("workout_exercises")
+      .delete()
+      .eq("id", exercise.id);
+    if (error) {
+      setDeleteError(error.message);
+      setDeleting(false);
+      return;
+    }
+    setDeleting(false);
     router.refresh();
   }
 
   const [moving, setMoving] = useState<"up" | "down" | null>(null);
   const [moveError, setMoveError] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   async function handleMove(direccion: -1 | 1) {
     const destino = index + direccion;
@@ -398,15 +414,24 @@ function ExerciseRow({ index, exercise, exercises }: { index: number; exercise: 
     const ordenados = exercises.map((e) => e.id);
     [ordenados[index], ordenados[destino]] = [ordenados[destino], ordenados[index]];
 
-    const resultados = await Promise.all(
-      ordenados.map((id, i) =>
-        supabase.from("workout_exercises").update({ orden: i + 1 }).eq("id", id)
-      )
-    );
-    const error = resultados.find((r) => r.error)?.error;
+    // De a una y solo las filas que cambian de lugar. Lanzar los updates en
+    // paralelo (Promise.all) los traba entre ellos y todos expiran con
+    // "canceling statement due to statement timeout".
+    let error: string | null = null;
+    for (let i = 0; i < ordenados.length; i++) {
+      if (exercises[i].id === ordenados[i]) continue;
+      const { error: err } = await supabase
+        .from("workout_exercises")
+        .update({ orden: i + 1 })
+        .eq("id", ordenados[i]);
+      if (err) {
+        error = err.message;
+        break;
+      }
+    }
 
     if (error) {
-      setMoveError(error.message);
+      setMoveError(error);
       setMoving(null);
       return;
     }
@@ -444,17 +469,19 @@ function ExerciseRow({ index, exercise, exercises }: { index: number; exercise: 
             ▼
           </button>
           <button
+            type="button"
             onClick={handleDelete}
-            className="rounded-lg border border-red-900/70 px-3 py-1.5 text-xs text-red-300 transition hover:bg-red-950/40"
+            disabled={deleting}
+            className="rounded-lg border border-red-900/70 px-3 py-1.5 text-xs text-red-300 transition hover:bg-red-950/40 disabled:opacity-30"
           >
-            Eliminar
+            {deleting ? "Eliminando…" : "Eliminar"}
           </button>
         </div>
       </div>
 
-      {moveError ? (
+      {moveError || deleteError ? (
         <p className="mb-4 rounded-lg border border-red-900/60 bg-red-950/40 px-3 py-2 text-xs text-red-300">
-          No se pudo reordenar: {moveError}
+          {moveError ? `No se pudo reordenar: ${moveError}` : `No se pudo eliminar: ${deleteError}`}
         </p>
       ) : null}
 
