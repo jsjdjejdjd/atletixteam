@@ -259,11 +259,7 @@ function AddExerciseForm({
             </p>
             <button
               type="button"
-              onClick={() => {
-                setExerciseId("");
-                setSeleccionado(null);
-                setBusqueda("");
-              }}
+              onClick={limpiarSeleccion}
               className="rounded-lg border border-zinc-700 px-2 py-1 text-xs text-zinc-300 transition hover:border-zinc-500"
             >
               Quitar

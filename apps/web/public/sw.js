@@ -1,4 +1,6 @@
-const CACHE = "atletix-v5";
+// v6: se dejo de cachear respuestas (ver handler "fetch"). El activate borra
+// todo lo que dejo la v5, que tiene HTML autenticado y RSC viejos guardados.
+const CACHE = "atletix-v6";
 
 // ---- Estado del cronómetro de descanso en el SW ----
 // La página le envía `rest:start`/`rest:stop` con `endsAt` (timestamp ms).
@@ -138,24 +140,23 @@ self.addEventListener("notificationclick", (e) => {
   );
 });
 
-self.addEventListener("fetch", (e) => {
-  const req = e.request;
-  if (req.method !== "GET") return;
+// No cacheamos respuestas. El SW existe para el cronómetro de descanso, y
+// cachear el resto era contraproducente:
+//
+//   - Los payloads RSC de Next llevan un hash del build. Servir uno viejo
+//     después de un deploy rompe la hidratación y deja la página en error.
+//   - El HTML va autenticado pero la clave es solo la URL: si la red fallaba,
+//     se le servía la página cacheada de quien hubiera usado el dispositivo
+//     antes, con los datos de esa persona.
+//   - La búsqueda y las APIs quedaban pegadas con resultados viejos.
+//
+// Los assets estaticos de /_next/static/ ya los cachea el navegador con
+// immutable, asi que no hacia falta duplicarlo aqui.
+//
+// Un catch-all sobre GET es justamente lo que hacia que un alumno con la app
+// instalada anduviera con datos viejos mientras otro recien actualizado andaba
+// bien.
 
-  const url = new URL(req.url);
-  if (url.origin !== self.location.origin) return;
-
-  e.respondWith(
-    fetch(req)
-      .then((res) => {
-        const copy = res.clone();
-        caches.open(CACHE).then((c) => c.put(req, copy));
-        return res;
-      })
-      .catch(() =>
-        caches.match(req).then(
-          (r) => r || (req.mode === "navigate" ? caches.match("/") : undefined)
-        )
-      )
-  );
+self.addEventListener("fetch", () => {
+  // Dejar que la red atienda todo. Sin respondWith no hay cacheo.
 });
