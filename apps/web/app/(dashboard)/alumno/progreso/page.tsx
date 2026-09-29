@@ -1,5 +1,6 @@
 import { requireProfile } from "@/lib/auth";
 import { ProgressSections } from "@/components/progress-sections";
+import { HistorialEntrenamientos } from "@/components/historial-entrenamientos";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,8 @@ export default async function ProgresoAlumnoPage() {
           Pesajes, tests y récords de tus entrenamientos registrados.
         </p>
       </section>
+
+      <HistorialEntrenamientos athleteId={user.id} />
 
       <ProgressSections athleteId={user.id} />
     </div>

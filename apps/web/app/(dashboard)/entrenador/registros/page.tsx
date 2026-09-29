@@ -1,50 +1,16 @@
 import Link from "next/link";
 import { requireProfile } from "@/lib/auth";
 import { EmptyState, SectionCard } from "@/components/ui";
+import { CopiarResumen } from "@/components/copiar-resumen";
+import { cargarLogs } from "@/lib/registros/cargar";
+import { aWhatsApp, detalleSerie, resumenDeAlumno } from "@/lib/registros/resumen";
 
 export const dynamic = "force-dynamic";
 
-type Serie = {
-  serie: number;
-  reps?: string | null;
-  peso?: string | null;
-  rir?: number | null;
-  descanso?: number | null;
-};
-
-type LogRow = {
-  id: string;
-  athlete_id: string;
-  workout_exercise_id: string;
-  fecha: string;
-  series_data: Serie[];
-  comentarios: string | null;
-};
-
-function resumenSeries(series: Serie[]) {
-  if (series.length === 0) return "Sin series registradas";
-
-  let mejor = series[0];
-  let mejorPuntaje = -1;
-  for (const s of series) {
-    const peso = parseFloat((s.peso ?? "").replace(",", ".")) || 0;
-    const reps = parseFloat((s.reps ?? "").replace(",", ".")) || 0;
-    const puntaje = peso * 1000 + reps;
-    if (puntaje > mejorPuntaje) {
-      mejorPuntaje = puntaje;
-      mejor = s;
-    }
-  }
-
-  const partes: string[] = [];
-  if (mejor.reps) partes.push(`${mejor.reps} reps`);
-  if (mejor.peso) partes.push(`${mejor.peso} kg`);
-  let detalle = partes.join(" × ") || "—";
-  if (mejor.rir != null) detalle += ` · RIR ${mejor.rir}`;
-
-  const n = series.length;
-  return `${n} ${n === 1 ? "serie" : "series"} · mejor: ${detalle}`;
-}
+/** Sin filtro mostramos los últimos 150 registros de todos los alumnos. Al
+ *  elegir uno, bajamos su historial completo: el resumen que le vas a mandar
+ *  no puede cortarse a mitad. */
+const LIMITE_TODOS = 150;
 
 export default async function RegistrosPage({
   searchParams,
@@ -59,81 +25,59 @@ export default async function RegistrosPage({
     .select("user_id")
     .eq("entrenador_id", user.id);
 
-  const athleteIds = [...new Set((athletesRes ?? []).map((a) => a.user_id))];
+  const todos = [...new Set((athletesRes ?? []).map((a) => a.user_id as string))];
 
-  let logsQuery = supabase
-    .from("workout_logs")
-    .select(
-      "id, athlete_id, workout_exercise_id, fecha, series_data, comentarios, created_at"
-    )
-    .in(
-      "athlete_id",
-      athleteIds.length ? athleteIds : ["00000000-0000-0000-0000-000000000000"]
-    )
-    .order("created_at", { ascending: false })
-    .limit(150);
-
-  if (athlete) logsQuery = logsQuery.eq("athlete_id", athlete);
-
-  const { data: logsRaw } = await logsQuery;
-  const logs = (logsRaw ?? []) as LogRow[];
-
-  const weIds = [...new Set(logs.map((l) => l.workout_exercise_id))];
-  const athleteUserIds = [...new Set(logs.map((l) => l.athlete_id))];
-
-  const [weRes, profilesRes] = await Promise.all([
-    weIds.length
-      ? supabase.from("workout_exercises").select("id, exercise_id").in("id", weIds)
-      : Promise.resolve({ data: [] as { id: string; exercise_id: string | null }[] }),
-    athleteUserIds.length
-      ? supabase
-          .from("profiles")
-          .select("id, nombre, apellido, email")
-          .in("id", athleteUserIds)
-      : Promise.resolve({ data: [] as { id: string; nombre: string | null; apellido: string | null; email: string | null }[] }),
-  ]);
-
-  const exIds = [
-    ...new Set(
-      (weRes.data ?? [])
-        .map((w) => w.exercise_id)
-        .filter((x): x is string => !!x)
-    ),
-  ];
-
-  const { data: library } = exIds.length
-    ? await supabase.from("exercises").select("id, nombre").in("id", exIds)
-    : { data: [] as { id: string; nombre: string }[] };
-
-  const exNameMap = new Map((library ?? []).map((e) => [e.id, e.nombre]));
-  const weNameMap = new Map<string, string>();
-  for (const w of weRes.data ?? []) {
-    if (w.exercise_id && exNameMap.has(w.exercise_id)) {
-      weNameMap.set(w.id, exNameMap.get(w.exercise_id)!);
-    }
+  if (athlete && !todos.includes(athlete)) {
+    // No es alumno tuyo: no le mostramos nada.
+    return <SinAcceso />;
   }
 
-  const profileMap = new Map(
-    (profilesRes.data ?? []).map((p) => [
-      p.id,
-      [p.nombre, p.apellido].filter(Boolean).join(" ") || p.email || "Alumno",
+  const { data: profilesRes } = await supabase
+    .from("profiles")
+    .select("id, nombre, apellido, email")
+    .in("id", todos.length ? todos : ["00000000-0000-0000-0000-000000000000"]);
+
+  const nombreDe = new Map(
+    (profilesRes ?? []).map((p) => [
+      p.id as string,
+      ([p.nombre, p.apellido].filter(Boolean).join(" ") ||
+        p.email ||
+        "Alumno") as string,
     ])
   );
 
-  const athleteOptions = [
-    ...new Map(
-      logs.map((l) => [l.athlete_id, profileMap.get(l.athlete_id) ?? "Alumno"])
-    ).entries(),
-  ].sort((a, b) => a[1].localeCompare(b[1]));
+  const porAlumno = await cargarLogs(
+    supabase,
+    athlete ? [athlete] : todos,
+    athlete ? undefined : LIMITE_TODOS
+  );
 
-  const byDate = new Map<string, LogRow[]>();
-  for (const l of logs) {
-    const list = byDate.get(l.fecha) ?? [];
-    list.push(l);
-    byDate.set(l.fecha, list);
+  // Los chips salen de `athletes`, no de los logs: si no, los alumnos que
+  // todavía no entrenaron ni siquiera aparecen y no los podés seleccionar.
+  const opciones = todos
+    .map((id) => [id, nombreDe.get(id) ?? "Alumno"] as const)
+    .sort((a, b) => a[1].localeCompare(b[1]));
+
+  const logueados = todos.filter((id) => (porAlumno.get(id) ?? []).length > 0);
+  const sinRegistrar = todos.length - logueados.length;
+
+  const filtroNombre = athlete ? nombreDe.get(athlete) ?? "Alumno" : null;
+
+  if (athlete) {
+    const logs = porAlumno.get(athlete) ?? [];
+    const resumen = resumenDeAlumno(filtroNombre!, logs);
+    return <DetalleAlumno nombre={filtroNombre!} resumen={resumen} />;
   }
 
-  const filtroNombre = athlete ? profileMap.get(athlete) ?? "Alumno" : null;
+  const lineas = [...porAlumno.entries()].flatMap(([id, logs]) =>
+    logs.map((l) => ({ ...l, athleteId: id }))
+  );
+  const porFecha = new Map<string, typeof lineas>();
+  for (const l of lineas) {
+    const lista = porFecha.get(l.fecha) ?? [];
+    lista.push(l);
+    porFecha.set(l.fecha, lista);
+  }
 
   return (
     <div className="flex flex-col gap-8">
@@ -145,67 +89,60 @@ export default async function RegistrosPage({
         </p>
       </section>
 
-      {athleteOptions.length > 0 ? (
-        <div className="flex flex-wrap gap-2">
-          <Link
-            href="/entrenador/registros"
-            className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-              !athlete
-                ? "bg-white text-zinc-950"
-                : "border border-zinc-800 text-zinc-300 hover:border-zinc-600 hover:text-white"
-            }`}
-          >
-            Todos
-          </Link>
-          {athleteOptions.map(([id, nombre]) => (
-            <Link
-              key={id}
-              href={`/entrenador/registros?athlete=${id}`}
-              className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-                athlete === id
-                  ? "bg-white text-zinc-950"
-                  : "border border-zinc-800 text-zinc-300 hover:border-zinc-600 hover:text-white"
-              }`}
-            >
+      <div className="flex flex-wrap gap-2">
+        <Chip href="/entrenador/registros" activo={!athlete}>
+          Todos
+        </Chip>
+        {opciones.map(([id, nombre]) => {
+          const n = (porAlumno.get(id) ?? []).length;
+          return (
+            <Chip key={id} href={`/entrenador/registros?athlete=${id}`} activo={athlete === id}>
               {nombre}
-            </Link>
-          ))}
-        </div>
+              <span className={n === 0 ? "ml-1.5 text-zinc-600" : "ml-1.5 text-zinc-500"}>
+                {n === 0 ? "sin registros" : n}
+              </span>
+            </Chip>
+          );
+        })}
+      </div>
+
+      {sinRegistrar > 0 ? (
+        <p className="text-sm text-zinc-500">
+          {sinRegistrar} de {todos.length} alumnos todavía no registraron ningún
+          entrenamiento.
+        </p>
       ) : null}
 
-      {logs.length === 0 ? (
+      {lineas.length === 0 ? (
         <EmptyState
-          title={
-            filtroNombre
-              ? `${filtroNombre} todavía no registró entrenamientos`
-              : "Todavía no hay registros"
-          }
+          title="Todavía no hay registros"
           description="Cuando tus alumnos completen entrenamientos con la app, acá vas a ver sus series, cargas y comentarios."
         />
       ) : (
         <div className="flex flex-col gap-6">
-          {[...byDate.entries()].map(([fecha, items]) => (
+          {[...porFecha.entries()].reverse().map(([fecha, items]) => (
             <SectionCard key={fecha} title={fecha}>
               <ul className="divide-y divide-zinc-800">
-                {items.map((log) => (
-                  <li key={log.id} className="px-6 py-4">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <div className="flex items-baseline gap-2">
-                        <p className="font-semibold">
-                          {profileMap.get(log.athlete_id) ?? "Alumno"}
-                        </p>
-                        <span className="text-xs text-zinc-600">·</span>
-                        <p className="text-sm font-medium text-zinc-400">
-                          {weNameMap.get(log.workout_exercise_id) ?? "Ejercicio"}
-                        </p>
-                      </div>
+                {items.map((l) => (
+                  <li key={l.id} className="px-6 py-4">
+                    <div className="flex flex-wrap items-baseline gap-2">
+                      <Link
+                        href={`/entrenador/registros?athlete=${l.athleteId}`}
+                        className="font-semibold hover:underline"
+                      >
+                        {nombreDe.get(l.athleteId) ?? "Alumno"}
+                      </Link>
+                      <span className="text-xs text-zinc-600">·</span>
+                      <p className="text-sm font-medium text-zinc-400">
+                        {l.ejercicioNombre}
+                      </p>
                     </div>
                     <p className="mt-1 text-sm text-zinc-400">
-                      {resumenSeries(log.series_data ?? [])}
+                      {detalleSerie(l.series)}
                     </p>
-                    {log.comentarios ? (
+                    {l.comentarios ? (
                       <p className="mt-2 rounded-lg bg-zinc-950/60 px-3 py-2 text-xs text-zinc-400">
-                        💬 {log.comentarios}
+                        {l.comentarios}
                       </p>
                     ) : null}
                   </li>
@@ -215,6 +152,148 @@ export default async function RegistrosPage({
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function Chip({
+  href,
+  activo,
+  children,
+}: {
+  href: string;
+  activo: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+        activo
+          ? "bg-white text-zinc-950"
+          : "border border-zinc-800 text-zinc-300 hover:border-zinc-600 hover:text-white"
+      }`}
+    >
+      {children}
+    </Link>
+  );
+}
+
+function DetalleAlumno({
+  nombre,
+  resumen,
+}: {
+  nombre: string;
+  resumen: ReturnType<typeof resumenDeAlumno>;
+}) {
+  return (
+    <div className="flex flex-col gap-8">
+      <section>
+        <Link
+          href="/entrenador/registros"
+          className="text-sm text-zinc-400 hover:text-white"
+        >
+          ← Todos los registros
+        </Link>
+        <h1 className="mt-2 text-3xl font-black tracking-tight">{nombre}</h1>
+      </section>
+
+      {resumen.totalRegistros === 0 ? (
+        <EmptyState
+          title={`${nombre} todavía no registró entrenamientos`}
+          description="Cuando complete entrenamientos con la app, acá vas a ver su historial y le vas a poder mandar el resumen."
+        />
+      ) : (
+        <>
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-950/50 p-6">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex flex-wrap gap-2 text-sm">
+                <span className="rounded-full bg-zinc-800 px-3 py-1 text-zinc-200">
+                  <strong>{resumen.dias.length}</strong> días
+                </span>
+                <span className="rounded-full bg-zinc-800 px-3 py-1 text-zinc-200">
+                  <strong>{resumen.totalRegistros}</strong> registros
+                </span>
+                <span className="rounded-full bg-zinc-800 px-3 py-1 text-zinc-200">
+                  <strong>{resumen.ejerciciosDistintos}</strong> ejercicios
+                </span>
+                <span className="rounded-full bg-zinc-800 px-3 py-1 text-zinc-300">
+                  {resumen.desde} → {resumen.hasta}
+                </span>
+              </div>
+              <CopiarResumen texto={aWhatsApp(resumen)} />
+            </div>
+          </div>
+
+          <SectionCard title="Mejores marcas por ejercicio">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-zinc-800 text-left text-xs tracking-widest text-zinc-500 uppercase">
+                    <th className="px-6 py-3 font-semibold">Ejercicio</th>
+                    <th className="px-6 py-3 font-semibold">Primera vez</th>
+                    <th className="px-6 py-3 font-semibold">Mejor</th>
+                    <th className="px-6 py-3 font-semibold">Progreso</th>
+                    <th className="px-6 py-3 font-semibold">Veces</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-900">
+                  {resumen.marcas.map((m) => (
+                    <tr key={m.ejercicio}>
+                      <td className="px-6 py-3 font-medium">{m.ejercicio}</td>
+                      <td className="px-6 py-3 text-zinc-400">{m.primera}</td>
+                      <td className="px-6 py-3 font-semibold text-zinc-100">
+                        {m.mejor}
+                      </td>
+                      <td className="px-6 py-3">
+                        {m.progreso == null ? (
+                          <span className="text-zinc-600">—</span>
+                        ) : m.progreso > 0 ? (
+                          <span className="text-emerald-400">+{m.progreso}</span>
+                        ) : m.progreso < 0 ? (
+                          <span className="text-zinc-500">{m.progreso}</span>
+                        ) : (
+                          <span className="text-zinc-600">igual</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-3 text-zinc-500">{m.veces}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </SectionCard>
+
+          {resumen.comentarios.length ? (
+            <SectionCard title="Lo que anotó el alumno">
+              <ul className="divide-y divide-zinc-800">
+                {resumen.comentarios.map((c, i) => (
+                  <li key={i} className="px-6 py-3 text-sm">
+                    <span className="text-zinc-500">{c.fecha.slice(5)}</span>{" "}
+                    <span className="font-medium">{c.ejercicio}</span>
+                    <p className="mt-1 text-zinc-400">{c.texto}</p>
+                  </li>
+                ))}
+              </ul>
+            </SectionCard>
+          ) : null}
+        </>
+      )}
+    </div>
+  );
+}
+
+function SinAcceso() {
+  return (
+    <div className="flex flex-col gap-8">
+      <h1 className="text-3xl font-black tracking-tight">No es tu alumno</h1>
+      <EmptyState
+        title="Ese alumno no está en tu lista"
+        description="Podés ver únicamente los registros de los alumnos que tenés asignados."
+      />
+      <Link href="/entrenador/registros" className="text-sm text-zinc-400 hover:text-white">
+        ← Volver a tus registros
+      </Link>
     </div>
   );
 }

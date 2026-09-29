@@ -161,15 +161,14 @@ function AddExerciseForm({
   // al escribir. El debounce evita un request por tecla.
   useEffect(() => {
     const q = busqueda.trim();
-    if (q.length < 2) {
-      setResultados([]);
-      setBuscando(false);
-      return;
-    }
+    // Con menos de 2 letras no hay nada que pedir. No hace falta limpiar el
+    // estado aca: el render ya muestra la instruccion mientras la query sea
+    // corta, y limpiarSerial lo hace cuando corresponde.
+    if (q.length < 2) return;
 
-    setBuscando(true);
     const ctrl = new AbortController();
     const timer = setTimeout(async () => {
+      setBuscando(true);
       try {
         const r = await fetch(`/api/exercises?q=${encodeURIComponent(q)}`, {
           signal: ctrl.signal,
