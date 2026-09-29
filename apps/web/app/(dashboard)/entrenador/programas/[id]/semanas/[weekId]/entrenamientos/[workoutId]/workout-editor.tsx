@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button, Field, SectionCard } from "@/components/ui";
@@ -42,13 +42,11 @@ type LogItem = {
 export function WorkoutEditor({
   workoutId,
   exercises,
-  library,
   logs = [],
   esCombo = false,
 }: {
   workoutId: string;
   exercises: ExerciseItem[];
-  library: { id: string; nombre: string; categoria: string; disciplina?: string | null }[];
   logs?: LogItem[];
   esCombo?: boolean;
 }) {
@@ -80,7 +78,6 @@ export function WorkoutEditor({
 
       <AddExerciseForm
         workoutId={workoutId}
-        library={library}
         nextOrder={exercises.reduce((max, e) => Math.max(max, e.orden), 0) + 1}
         onSaved={() => router.refresh()}
       />
@@ -128,22 +125,30 @@ export function WorkoutEditor({
   );
 }
 
+type LibraryExercise = {
+  id: string;
+  nombre: string;
+  categoria: string;
+  disciplina?: string | null;
+};
+
 function AddExerciseForm({
   workoutId,
-  library,
   nextOrder,
   onSaved,
   esCombo = false,
 }: {
   workoutId: string;
-  library: { id: string; nombre: string; categoria: string; disciplina?: string | null }[];
   nextOrder: number;
   onSaved: () => void;
   esCombo?: boolean;
 }) {
   const supabase = createClient();
   const [exerciseId, setExerciseId] = useState("");
+  const [seleccionado, setSeleccionado] = useState<LibraryExercise | null>(null);
   const [busqueda, setBusqueda] = useState("");
+  const [resultados, setResultados] = useState<LibraryExercise[]>([]);
+  const [buscando, setBuscando] = useState(false);
   const [series, setSeries] = useState("3");
   const [repeticiones, setRepeticiones] = useState("");
   const [rir, setRir] = useState("");
@@ -152,15 +157,47 @@ function AddExerciseForm({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const seleccionado = library.find((l) => l.id === exerciseId) ?? null;
-  const q = busqueda.trim().toLowerCase();
-  const filtrados = library.filter(
-    (l) =>
-      !q ||
-      l.nombre.toLowerCase().includes(q) ||
-      l.categoria.toLowerCase().includes(q)
-  )
-    .sort((a, b) => a.nombre.localeCompare(b.nombre));
+  // La biblioteca son 566 filas y ya no se baja entera con la pagina: se consulta
+  // al escribir. El debounce evita un request por tecla.
+  useEffect(() => {
+    const q = busqueda.trim();
+    if (q.length < 2) {
+      setResultados([]);
+      setBuscando(false);
+      return;
+    }
+
+    setBuscando(true);
+    const ctrl = new AbortController();
+    const timer = setTimeout(async () => {
+      try {
+        const r = await fetch(`/api/exercises?q=${encodeURIComponent(q)}`, {
+          signal: ctrl.signal,
+        });
+        if (!r.ok) throw new Error("No se pudo buscar en la biblioteca.");
+        const data = (await r.json()) as { results: LibraryExercise[] };
+        setResultados(data.results);
+      } catch (e) {
+        if ((e as Error).name !== "AbortError") {
+          setError((e as Error).message);
+        }
+      } finally {
+        setBuscando(false);
+      }
+    }, 250);
+
+    return () => {
+      clearTimeout(timer);
+      ctrl.abort();
+    };
+  }, [busqueda]);
+
+  function limpiarSeleccion() {
+    setExerciseId("");
+    setSeleccionado(null);
+    setBusqueda("");
+    setResultados([]);
+  }
 
   async function handleAdd() {
     if (!exerciseId) {
@@ -225,6 +262,7 @@ function AddExerciseForm({
               type="button"
               onClick={() => {
                 setExerciseId("");
+                setSeleccionado(null);
                 setBusqueda("");
               }}
               className="rounded-lg border border-zinc-700 px-2 py-1 text-xs text-zinc-300 transition hover:border-zinc-500"
@@ -234,18 +272,24 @@ function AddExerciseForm({
           </div>
         ) : (
           <div className="max-h-64 overflow-y-auto rounded-lg border border-zinc-800 bg-zinc-950/60">
-            {filtrados.length === 0 ? (
+            {busqueda.trim().length < 2 ? (
               <p className="px-4 py-3 text-sm text-zinc-500">
-                No encontré ejercicios con ese nombre.
+                Escribí al menos 2 letras para buscar en la biblioteca.
+              </p>
+            ) : resultados.length === 0 ? (
+              <p className="px-4 py-3 text-sm text-zinc-500">
+                {buscando ? "Buscando…" : "No encontré ejercicios con ese nombre."}
               </p>
             ) : (
-              filtrados.map((l) => (
+              resultados.map((l) => (
                 <button
                   key={l.id}
                   type="button"
                   onClick={() => {
                     setExerciseId(l.id);
+                    setSeleccionado(l);
                     setBusqueda("");
+                    setResultados([]);
                   }}
                   className="flex w-full items-center justify-between gap-3 border-b border-zinc-800/70 px-4 py-2.5 text-left transition last:border-b-0 hover:bg-zinc-900"
                 >

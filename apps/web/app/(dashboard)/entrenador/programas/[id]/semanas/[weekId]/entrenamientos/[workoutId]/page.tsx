@@ -32,30 +32,25 @@ export default async function EntrenamientoPage({
   // Los ids y los perfiles no dependen de los logs, asi que viajan en la misma
   // tanda que el resto. Antes los logs esperaban a un id-query anidado y los
   // perfiles esperaban a los logs: tres etapas encadenadas.
-  const [workoutRes, exercisesRes, libraryRes, weIdsRes, profilesRes] =
-    await Promise.all([
-      supabase
-        .from("workouts")
-        .select("id, nombre, dia, week_id, es_combo")
-        .eq("id", workoutId)
-        .single(),
-      supabase
-        .from("workout_exercises")
-        .select("*")
-        .eq("workout_id", workoutId)
-        .is("athlete_id", null)
-        .order("orden", { ascending: true }),
-      supabase
-        .from("exercises")
-        .select("id, nombre, categoria, disciplina")
-        .order("nombre", { ascending: true }),
-      supabase
-        .from("workout_exercises")
-        .select("id")
-        .eq("workout_id", workoutId),
-      // Solo 34 perfiles en total: traerlos todos evita esperar a los logs.
-      supabase.from("profiles").select("id, nombre, apellido, email"),
-    ]);
+  //
+  // La biblioteca entra por join embebido y no como tabla completa: son 566
+  // filas (~250KB de payload) y aca solo se necesitan las de esta sesion.
+  const [workoutRes, exercisesRes, weIdsRes, profilesRes] = await Promise.all([
+    supabase
+      .from("workouts")
+      .select("id, nombre, dia, week_id, es_combo")
+      .eq("id", workoutId)
+      .single(),
+    supabase
+      .from("workout_exercises")
+      .select("*, exercises(id, nombre, categoria)")
+      .eq("workout_id", workoutId)
+      .is("athlete_id", null)
+      .order("orden", { ascending: true }),
+    supabase.from("workout_exercises").select("id").eq("workout_id", workoutId),
+    // Solo 34 perfiles en total: traerlos todos evita esperar a los logs.
+    supabase.from("profiles").select("id, nombre, apellido, email"),
+  ]);
 
   const weIds = (weIdsRes.data ?? []).map((w) => w.id);
 
@@ -73,26 +68,16 @@ export default async function EntrenamientoPage({
     return <p className="text-zinc-500">Entrenamiento no encontrado.</p>;
   }
 
-  const raw = (exercisesRes.data ?? []) as WorkoutExercise[];
-  const library = (libraryRes.data ?? []) as {
-    id: string;
-    nombre: string;
-    categoria: string;
-    disciplina?: string | null;
-  }[];
+  type RowConNombre = WorkoutExercise & {
+    exercises: { id: string; nombre: string; categoria: string } | null;
+  };
 
-  const exerciseMap = new Map(
-    library.map((l) => [l.id, { nombre: l.nombre, categoria: l.categoria }])
-  );
+  const raw = (exercisesRes.data ?? []) as RowConNombre[];
 
   const exercises = raw.map((ex) => ({
     ...ex,
-    exercise_nombre: ex.exercise_id
-      ? exerciseMap.get(ex.exercise_id)?.nombre ?? "Sin nombre"
-      : "Sin nombre",
-    exercise_categoria: ex.exercise_id
-      ? exerciseMap.get(ex.exercise_id)?.categoria ?? ""
-      : "",
+    exercise_nombre: ex.exercises?.nombre ?? "Sin nombre",
+    exercise_categoria: ex.exercises?.categoria ?? "",
   }));
 
   const profileMap = new Map(
@@ -154,11 +139,10 @@ export default async function EntrenamientoPage({
       </section>
 
       <WorkoutEditor
-        workoutId={workoutId}
+        workoutId={workout.id}
         exercises={exercises}
-        library={library}
         logs={logs}
-        esCombo={Boolean((workout as { es_combo?: boolean }).es_combo)}
+        esCombo={workout.es_combo}
       />
     </div>
   );
