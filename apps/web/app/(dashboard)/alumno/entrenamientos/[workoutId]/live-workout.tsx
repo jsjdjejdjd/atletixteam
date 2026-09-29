@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -517,18 +517,20 @@ export function LiveWorkout({
         if (res !== "granted") return;
       }
       if (Notification.permission !== "granted") return;
-      // Si la app está en foco, el overlay y el beep ya avisan; no duplicar.
+      // Si la app está en foco, la barra y el beep ya avisan; no duplicar.
       if (document.visibilityState === "visible" && document.hasFocus()) return;
       if ("serviceWorker" in navigator) {
         const reg = await navigator.serviceWorker.ready;
         await reg.showNotification("Descanso terminado", {
           body: "A entrenar de nuevo 💪",
           tag: "atletix-rest",
+          silent: true,
         });
       } else {
         new Notification("Descanso terminado", {
           body: "A entrenar de nuevo 💪",
           tag: "atletix-rest",
+          silent: true,
         });
       }
     } catch { /* sin notificaciones */ }
@@ -889,107 +891,11 @@ export function LiveWorkout({
           {error}
         </p>
       )}
-
-      {timerRemaining !== null ? (
-        <RestLockOverlay
-          remaining={timerRemaining}
-          running={timerRunning}
-          onToggle={toggleTimer}
-          onStart={startTimer}
-          onStop={stopTimer}
-        />
-      ) : null}
     </div>
   );
 }
 
 const REST_PRESETS_MIN = [1, 2, 3, 5];
-
-/**
- * Pantalla de bloqueo del descanso: overlay fullscreen con el cronómetro en
- * grande. Se muestra automáticamente cuando el descanso está activo o terminó.
- * Al llegar a 0 suena el beep + notificación, y un toque en cualquier parte
- * cierra la pantalla; mientras corre, tocás la pantalla no hace nada (evita
- * toques accidentales) y los controles quedan abajo.
- */
-function RestLockOverlay({
-  remaining,
-  running,
-  onToggle,
-  onStart,
-  onStop,
-}: {
-  remaining: number;
-  running: boolean;
-  onToggle: () => void;
-  onStart: (s: number) => void;
-  onStop: () => void;
-}) {
-  const finished = remaining === 0;
-
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="Descanso"
-      onPointerDown={(e) => {
-        if (finished) onStop();
-        e.stopPropagation();
-      }}
-      className="fixed inset-0 z-50 flex select-none flex-col items-center justify-center gap-10 bg-zinc-950/98 px-6 backdrop-blur"
-    >
-      <div className="flex flex-col items-center gap-2">
-        <span className="text-sm font-bold uppercase tracking-[0.3em] text-zinc-500">
-          {finished ? "Descanso terminado" : "Descanso"}
-        </span>
-        <span
-          className={`font-mono text-8xl font-black tabular-nums sm:text-9xl ${
-            finished ? "text-emerald-300" : "text-white"
-          }`}
-        >
-          {formatTimerTime(remaining)}
-        </span>
-        {finished ? (
-          <p className="mt-2 text-base font-semibold text-emerald-300">
-            ¡A entrenar de nuevo! tocá para continuar
-          </p>
-        ) : (
-          <p className="mt-2 text-sm text-zinc-500">
-            tocá la pantalla recién cuando termine
-          </p>
-        )}
-      </div>
-
-      {!finished ? (
-        <div className="flex items-center gap-3">
-          <Button
-            variant="secondary"
-            type="button"
-            className="px-6 py-3 text-base"
-            onClick={onToggle}
-          >
-            {running ? "Pausa" : "Reanudar"}
-          </Button>
-          <Button
-            variant="secondary"
-            type="button"
-            className="px-6 py-3 text-base"
-            onClick={() => onStart(remaining + 60)}
-          >
-            +1 min
-          </Button>
-          <button
-            onClick={onStop}
-            className="rounded-xl px-4 py-3 text-sm font-medium text-zinc-500 transition hover:text-red-400"
-            title="Detener descanso"
-          >
-            ✕
-          </button>
-        </div>
-      ) : null}
-    </div>
-  );
-}
 
 function RestTimerBar({
   remaining,

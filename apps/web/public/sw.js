@@ -1,4 +1,4 @@
-const CACHE = "atletix-v4";
+const CACHE = "atletix-v5";
 
 // ---- Estado del cronómetro de descanso en el SW ----
 // La página le envía `rest:start`/`rest:stop` con `endsAt` (timestamp ms).
@@ -9,6 +9,12 @@ const REST_TAG = "atletix-rest";
 const REST_FIN_TAG = "atletix-rest-fin";
 let restTimer = null;
 let restEndsAt = null;
+
+// El descanso se anuncia en silencio (sin sonido, sin vibración) y el contador
+// se refresca cada 30 segundos en vez de cada segundo: refrescarlo cada segundo
+// generaba un heads-up por segundo en Android, muy molesto.
+const SILENT = { silent: true, vibrate: 0, requireInteraction: false };
+const REFRESH_MS = 30000;
 
 function fmtRemaining(ms) {
   const total = Math.max(0, Math.ceil(ms / 1000));
@@ -33,25 +39,31 @@ function clearRest() {
     .catch(() => {});
 }
 
+function showRestFinished() {
+  self.registration
+    .showNotification("Descanso terminado 💪", {
+      body: "A entrenar de nuevo",
+      tag: REST_FIN_TAG,
+      renotify: false,
+      ...SILENT,
+    })
+    .catch(() => {});
+}
+
 function tickRest() {
   if (restEndsAt === null) return;
   const remain = restEndsAt - Date.now();
   if (remain <= 0) {
     clearRest();
-    self.registration
-      .showNotification("Descanso terminado 💪", {
-        body: "A entrenar de nuevo",
-        tag: REST_TAG,
-        renotify: true,
-      })
-      .catch(() => {});
+    showRestFinished();
     return;
   }
   self.registration
-    .showNotification(`Descanso · ${fmtRemaining(remain)}`, {
-      body: "tiempo de descanso restante",
+    .showNotification("Descanso en curso", {
+      body: `Quedan ${fmtRemaining(remain)}`,
       tag: REST_TAG,
       renotify: false,
+      ...SILENT,
     })
     .catch(() => {});
 }
@@ -60,18 +72,17 @@ function startRest(endsAt, titulo, body) {
   clearRest();
   restEndsAt = endsAt;
   tickRest();
-  restTimer = setInterval(tickRest, 1000);
+  restTimer = setInterval(tickRest, REFRESH_MS);
 
-  // Notificación programada para la pantalla de bloqueo (Android/Chrome):
-  // aparece a la hora exacta del fin aunque cierres la app.
   if (typeof TimestampTrigger !== "undefined") {
     try {
       self.registration
         .showNotification("Descanso terminado 💪", {
           body: "A entrenar de nuevo",
           tag: REST_FIN_TAG,
-          renotify: true,
+          renotify: false,
           showTrigger: new TimestampTrigger(new Date(endsAt)),
+          ...SILENT,
         })
         .catch(() => {});
     } catch {
