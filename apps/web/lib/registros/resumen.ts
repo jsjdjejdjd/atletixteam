@@ -18,11 +18,22 @@ export type LogResumen = {
 export type Marca = {
   ejercicio: string;
   primera: string;
+  fechaPrimera: string;
+  seriesPrimera: number;
+  ultima: string;
+  fechaUltima: string;
+  seriesUltima: number;
   mejor: string;
   fechaMejor: string;
   veces: number;
   progreso: number | null;
 };
+
+/** "3 series", o "3→4 series" cuando cambió entre la primera y la última. */
+export function seriesTexto(primera: number, ultima: number): string {
+  const etiqueta = (n: number) => `${n} ${n === 1 ? "serie" : "series"}`;
+  return primera === ultima ? etiqueta(ultima) : `${primera}→${ultima} series`;
+}
 
 export type ResumenAlumno = {
   nombre: string;
@@ -110,6 +121,7 @@ export function resumenDeAlumno(
         if (puntaje(l.series) > puntaje(mejorLog.series)) mejorLog = l;
       }
       const mejor = detalleSerie(mejorLog.series);
+      const ultimoLog = sesiones[sesiones.length - 1];
 
       const pIni = repsNumericas(sesiones[0].series);
       const pFin = repsNumericas(sesiones[sesiones.length - 1].series);
@@ -121,6 +133,11 @@ export function resumenDeAlumno(
       return {
         ejercicio,
         primera,
+        fechaPrimera: sesiones[0].fecha,
+        seriesPrimera: sesiones[0].series.length,
+        ultima: detalleSerie(ultimoLog.series),
+        fechaUltima: ultimoLog.fecha,
+        seriesUltima: ultimoLog.series.length,
         mejor,
         fechaMejor: mejorLog.fecha,
         veces: sesiones.length,
@@ -183,7 +200,9 @@ export function aWhatsApp(r: ResumenAlumno): string {
           : m.progreso != null && m.progreso < 0
             ? ` (bajaste ${Math.abs(m.progreso)} respecto a la primera)`
             : "";
-      lineas.push(`• ${m.ejercicio}: ${m.mejor}${flecha}`);
+      lineas.push(
+        `• ${m.ejercicio}: ${m.mejor}, ${seriesTexto(m.seriesPrimera, m.seriesUltima)} (el ${fechaCorta(m.fechaMejor)})${flecha}`
+      );
     }
   }
 

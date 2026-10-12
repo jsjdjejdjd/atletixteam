@@ -12,6 +12,11 @@ export const dynamic = "force-dynamic";
  *  no puede cortarse a mitad. */
 const LIMITE_TODOS = 150;
 
+function diaLargo(iso: string): string {
+  const [a, m, d] = iso.split("-");
+  return `${d}/${m}/${a}`;
+}
+
 export default async function RegistrosPage({
   searchParams,
 }: {
@@ -232,6 +237,7 @@ function DetalleAlumno({
                   <tr className="border-b border-zinc-800 text-left text-xs tracking-widest text-zinc-500 uppercase">
                     <th className="px-6 py-3 font-semibold">Ejercicio</th>
                     <th className="px-6 py-3 font-semibold">Primera vez</th>
+                    <th className="px-6 py-3 font-semibold">Última vez</th>
                     <th className="px-6 py-3 font-semibold">Mejor</th>
                     <th className="px-6 py-3 font-semibold">Progreso</th>
                     <th className="px-6 py-3 font-semibold">Veces</th>
@@ -241,9 +247,25 @@ function DetalleAlumno({
                   {resumen.marcas.map((m) => (
                     <tr key={m.ejercicio}>
                       <td className="px-6 py-3 font-medium">{m.ejercicio}</td>
-                      <td className="px-6 py-3 text-zinc-400">{m.primera}</td>
+                      <td className="px-6 py-3 text-zinc-400">
+                        {m.primera}
+                        <span className="block text-xs text-zinc-500">
+                          {diaLargo(m.fechaPrimera)} · {m.seriesPrimera}{" "}
+                          {m.seriesPrimera === 1 ? "serie" : "series"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-3 text-zinc-400">
+                        {m.ultima}
+                        <span className="block text-xs text-zinc-500">
+                          {diaLargo(m.fechaUltima)} · {m.seriesUltima}{" "}
+                          {m.seriesUltima === 1 ? "serie" : "series"}
+                        </span>
+                      </td>
                       <td className="px-6 py-3 font-semibold text-zinc-100">
                         {m.mejor}
+                        <span className="block text-xs font-normal text-zinc-500">
+                          {diaLargo(m.fechaMejor)}
+                        </span>
                       </td>
                       <td className="px-6 py-3">
                         {m.progreso == null ? (
