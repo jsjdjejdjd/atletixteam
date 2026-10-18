@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Button, Field, SectionCard } from "@/components/ui";
+import { Button, Field, SectionCard, Select, TextInput } from "@/components/ui";
+import { DISCIPLINAS, LEVELS, categoriasDe } from "@/lib/levels";
 
 type ExerciseItem = {
   id: string;
@@ -136,12 +137,10 @@ function AddExerciseForm({
   workoutId,
   nextOrder,
   onSaved,
-  esCombo = false,
 }: {
   workoutId: string;
   nextOrder: number;
   onSaved: () => void;
-  esCombo?: boolean;
 }) {
   const supabase = createClient();
   const [exerciseId, setExerciseId] = useState("");
@@ -156,6 +155,26 @@ function AddExerciseForm({
   const [peso, setPeso] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Alta de un ejercicio que no está en la biblioteca: se crea la fila en
+  // exercises y se agrega a la sesión en el mismo paso.
+  const [creandoNuevo, setCreandoNuevo] = useState(false);
+  const [nuevoNombre, setNuevoNombre] = useState("");
+  const [nuevoDisciplina, setNuevoDisciplina] = useState<string>(DISCIPLINAS[0]);
+  const [nuevoCategoria, setNuevoCategoria] = useState<string>(
+    categoriasDe(DISCIPLINAS[0])[0]
+  );
+  const [nuevoDificultad, setNuevoDificultad] = useState("Intermedio");
+
+  function cambiarDisciplina(d: string) {
+    setNuevoDisciplina(d);
+    setNuevoCategoria(categoriasDe(d)[0]);
+  }
+
+  function toggleNuevo() {
+    setCreandoNuevo((v) => !v);
+    setError(null);
+  }
 
   // La biblioteca son 566 filas y ya no se baja entera con la pagina: se consulta
   // al escribir. El debounce evita un request por tecla.
@@ -199,16 +218,49 @@ function AddExerciseForm({
   }
 
   async function handleAdd() {
-    if (!exerciseId) {
-      setError("Elegí un ejercicio de la biblioteca.");
-      return;
-    }
     setError(null);
-    setLoading(true);
+
+    let exId = exerciseId;
+
+    if (creandoNuevo) {
+      const nombre = nuevoNombre.trim();
+      if (!nombre) {
+        setError("Escribí el nombre del ejercicio nuevo.");
+        return;
+      }
+      setLoading(true);
+      const { data, error: errEj } = await supabase
+        .from("exercises")
+        .insert({
+          nombre,
+          disciplina: nuevoDisciplina,
+          categoria: nuevoCategoria,
+          dificultad: nuevoDificultad,
+          tipo: nuevoDisciplina,
+          activo: true,
+        })
+        .select("id")
+        .single();
+      if (errEj) {
+        setError(
+          errEj.code === "23505"
+            ? "Ya existe un ejercicio con ese nombre en la biblioteca. Buscalo arriba."
+            : errEj.message
+        );
+        setLoading(false);
+        return;
+      }
+      exId = data?.id ?? null;
+    } else if (!exerciseId) {
+      setError("Elegí un ejercicio de la biblioteca o creá uno nuevo.");
+      return;
+    } else {
+      setLoading(true);
+    }
 
     const { error } = await supabase.from("workout_exercises").insert({
       workout_id: workoutId,
-      exercise_id: exerciseId,
+      exercise_id: exId,
       orden: nextOrder,
       series: series ? Number(series) : null,
       repeticiones: repeticiones.trim() || null,
@@ -227,19 +279,88 @@ function AddExerciseForm({
     setRir("");
     setDescanso("");
     setPeso("");
+    if (creandoNuevo) {
+      setNuevoNombre("");
+    } else {
+      limpiarSeleccion();
+    }
     setLoading(false);
     onSaved();
   }
 
   return (
     <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 p-6">
-      <h2 className="text-lg font-bold">Agregar ejercicio</h2>
-      <p className="mt-1 text-sm text-zinc-500">
-        Buscá el ejercicio en la biblioteca y cargá los parámetros de la sesión.
-      </p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-lg font-bold">Agregar ejercicio</h2>
+          <p className="mt-1 text-sm text-zinc-500">
+            {creandoNuevo
+              ? "Creá un ejercicio que no esté en la biblioteca y se agrega a la sesión."
+              : "Buscá el ejercicio en la biblioteca y cargá los parámetros de la sesión."}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={toggleNuevo}
+          className="shrink-0 rounded-lg border border-zinc-700 px-3 py-1.5 text-xs font-semibold text-zinc-300 transition hover:border-zinc-500"
+        >
+          {creandoNuevo ? "← Buscar en la biblioteca" : "¿No está en la biblioteca?"}
+        </button>
+      </div>
 
       <div className="mt-4 flex flex-col gap-4">
-        <Field label="Buscar ejercicio *">
+        {creandoNuevo ? (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Field label="Nombre del ejercicio *">
+              <TextInput
+                value={nuevoNombre}
+                onChange={(e) => setNuevoNombre(e.target.value)}
+                placeholder="Ej: Dominada a una mano"
+              />
+            </Field>
+            <Field label="Disciplina">
+              <Select
+                value={nuevoDisciplina}
+                onChange={(e) => cambiarDisciplina(e.target.value)}
+              >
+                {DISCIPLINAS.map((d) => (
+                  <option key={d} value={d}>
+                    {d}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Categoría">
+              <Select
+                value={nuevoCategoria}
+                onChange={(e) => setNuevoCategoria(e.target.value)}
+              >
+                {categoriasDe(nuevoDisciplina).map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field label="Dificultad">
+              <Select
+                value={nuevoDificultad}
+                onChange={(e) => setNuevoDificultad(e.target.value)}
+              >
+                {LEVELS.map((l) => (
+                  <option key={l} value={l}>
+                    {l}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <p className="text-xs text-zinc-600 sm:col-span-2">
+              Se crea en la biblioteca y se agrega a esta sesión.
+            </p>
+          </div>
+        ) : (
+          <>
+            <Field label="Buscar ejercicio *">
           <input
             type="text"
             value={busqueda}
@@ -299,6 +420,8 @@ function AddExerciseForm({
             )}
           </div>
         )}
+          </>
+        )}
 
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
           <Field label="Series">
@@ -356,7 +479,11 @@ function AddExerciseForm({
 
         <div className="flex justify-end">
           <Button type="button" onClick={handleAdd} disabled={loading}>
-            {loading ? "Agregando…" : "+ Agregar ejercicio"}
+            {loading
+              ? "Agregando…"
+              : creandoNuevo
+                ? "Crear y agregar"
+                : "+ Agregar ejercicio"}
           </Button>
         </div>
       </div>
