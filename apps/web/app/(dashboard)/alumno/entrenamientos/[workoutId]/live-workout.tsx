@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button, Field, TextInput } from "@/components/ui";
+import { NuevoEjercicioForm } from "@/components/nuevo-ejercicio-form";
 import {
   iniciarCronometroNotificacion,
   detenerCronometroNotificacion,
@@ -188,6 +189,7 @@ export function LiveWorkout({
   const [items, setItems] = useState<Exercise[]>(exercises);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const [createOpen, setCreateOpen] = useState(false);
 
   useEffect(() => {
     const onFocusIn = () => {
@@ -401,6 +403,84 @@ export function LiveWorkout({
     }));
     setSearch("");
     setPickerOpen(false);
+  }
+
+  async function handleCreateNew(
+    name: string,
+    disciplina: string,
+    categoria: string,
+    dificultad: string
+  ) {
+    setError(null);
+    const { data: creado, error: insErr } = await supabase
+      .from("exercises")
+      .insert({
+        nombre: name.trim(),
+        disciplina,
+        categoria,
+        tipo: disciplina,
+        dificultad,
+        activo: true,
+      })
+      .select("id")
+      .single();
+    if (insErr || !creado) {
+      setError(insErr?.message ?? "No se pudo crear el ejercicio.");
+      return;
+    }
+    const nextOrden = Math.max(0, ...items.map((i) => i.orden)) + 1;
+    const { data: weRow, error: weErr } = await supabase
+      .from("workout_exercises")
+      .insert({
+        workout_id: workoutId,
+        exercise_id: creado.id,
+        athlete_id: athleteId,
+        orden: nextOrden,
+        series: 3,
+        descanso_segundos: 90,
+      })
+      .select("id")
+      .single();
+    if (weErr || !weRow) {
+      setError(weErr?.message ?? "No se pudo agregar el ejercicio.");
+      return;
+    }
+    const nuevo: Exercise = {
+      id: weRow.id,
+      exercise_id: creado.id,
+      athlete_id: athleteId,
+      orden: nextOrden,
+      name: name.trim(),
+      target: {
+        series: 3,
+        repeticiones: null,
+        tiempo: null,
+        rir: null,
+        descanso_segundos: 90,
+        peso: null,
+        tempo: null,
+        asistencia: null,
+        notas: null,
+        video_url: null,
+        sugerencia_progresion: null,
+      },
+      log: null,
+    };
+    setItems((prev) => [...prev, nuevo]);
+    setData((prev) => ({
+      ...prev,
+      [nuevo.id]: {
+        rows: Array.from({ length: 3 }, () => ({
+          done: false,
+          reps: "",
+          peso: "",
+          rir: "",
+          descanso: "",
+        })),
+        comentario: "",
+      },
+    }));
+    setCreateOpen(false);
   }
 
   async function removeExercise(exercise: Exercise) {
@@ -730,16 +810,39 @@ export function LiveWorkout({
             <p className="text-sm text-zinc-400">
               Ajustá tu rutina mientras entrenás (los cambios son solo para
               vos): reordená con ↑ ↓, quitá o agregá ejercicios de la
-              biblioteca.
+              biblioteca, o creá uno nuevo si falta.
             </p>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={() => setPickerOpen((v) => !v)}
-            >
-              {pickerOpen ? "Cerrar" : "+ Agregar ejercicio"}
-            </Button>
+            <div className="flex flex-wrap gap-3">
+              {!createOpen ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    setPickerOpen((v) => !v);
+                    setSearch("");
+                  }}
+                >
+                  {pickerOpen ? "Cerrar" : "+ Agregar ejercicio"}
+                </Button>
+              ) : null}
+              {!pickerOpen ? (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => setCreateOpen((v) => !v)}
+                >
+                  {createOpen ? "← Buscar en la biblioteca" : "+ Crear ejercicio que no existe"}
+                </Button>
+              ) : null}
+            </div>
           </div>
+          {createOpen ? (
+            <NuevoEjercicioForm
+              descripcion="El ejercicio se agrega a la biblioteca compartida y también a esta sesión."
+              onCancel={() => setCreateOpen(false)}
+              onSave={handleCreateNew}
+            />
+          ) : null}
           {pickerOpen ? (
             <div>
               <TextInput
@@ -751,7 +854,8 @@ export function LiveWorkout({
               <ul className="mt-3 flex max-h-72 flex-col gap-1 overflow-y-auto">
                 {filteredLibrary.length === 0 ? (
                   <li className="px-2 py-3 text-sm text-zinc-600">
-                    No se encontraron ejercicios.
+                    No se encontraron ejercicios. Podés crear uno nuevo con el
+                    botón “+ Crear ejercicio que no existe”.
                   </li>
                 ) : (
                   filteredLibrary.map((l) => {
