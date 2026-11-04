@@ -1,5 +1,3 @@
-const REST_TAG = "atletix-rest";
-
 /**
  * Navegador con service worker activo y notificaciones permitidas.
  */
@@ -49,6 +47,11 @@ export async function iniciarCronometroNotificacion(
     type: "rest:start",
     endsAt: Date.now() + seconds * 1000,
     body: body ?? "tiempo de descanso restante",
+    // Así la notificación de fin reabre la sesión exacta (y no la landing).
+    url:
+      typeof window !== "undefined"
+        ? `${window.location.pathname}${window.location.search}`
+        : "/alumno",
   });
   if (!notificacionesDisponibles()) await pedirPermisoNotificaciones();
 }

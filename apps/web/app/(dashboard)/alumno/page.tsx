@@ -2,6 +2,10 @@ import { requireProfile } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
+// Igual que en la pantalla de entrenamiento: un borrador más viejo que esto ya
+// no se restaura, así que tampoco tiene sentido ofrecer "continuar".
+const DRAFT_MAX_AGE_MS = 3 * 24 * 60 * 60 * 1000;
+
 export default async function AlumnoPage() {
   const { supabase, user, profile } = await requireProfile();
 
@@ -13,7 +17,7 @@ export default async function AlumnoPage() {
 
   const athlete = athleteRes.data;
 
-  const [programRes, weekRes] = await Promise.all([
+  const [programRes, weekRes, draftRes] = await Promise.all([
     supabase
       .from("athlete_programs")
       .select("id, program_id, estado")
@@ -25,7 +29,47 @@ export default async function AlumnoPage() {
       .eq("athlete_id", user.id)
       .order("fecha", { ascending: false })
       .limit(10),
+    // Borrador más reciente = sesión que quedó a medias (app cerrada, batería,
+    // cambio de app). Sirve para ofrecer "continuar entrenamiento" al volver.
+    supabase
+      .from("workout_drafts")
+      .select("workout_id, updated_at")
+      .eq("athlete_id", user.id)
+      .order("updated_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
+
+  const draftRow = draftRes.data as
+    | { workout_id: string; updated_at: string }
+    | null;
+
+  let draftActual: {
+    workoutId: string;
+    nombre: string;
+    dia: number | null;
+    actualizado: string;
+  } | null = null;
+
+  if (draftRow) {
+    const edad = new Date().getTime() - new Date(draftRow.updated_at).getTime();
+    if (edad < DRAFT_MAX_AGE_MS) {
+      const { data: workout } = await supabase
+        .from("workouts")
+        .select("id, nombre, dia")
+        .eq("id", draftRow.workout_id)
+        .maybeSingle();
+      if (workout) {
+        draftActual = {
+          workoutId: workout.id,
+          nombre: workout.nombre,
+          dia: workout.dia,
+          actualizado: draftRow.updated_at,
+        };
+      }
+    }
+  }
+
 
   const programIds = (programRes.data ?? [])
     .map((a) => a.program_id)
@@ -63,6 +107,32 @@ export default async function AlumnoPage() {
           Acá vas a encontrar tu programa, tus entrenamientos y tu evolución.
         </p>
       </section>
+
+      {draftActual ? (
+        <section className="rounded-2xl border border-emerald-800/70 bg-emerald-950/30 p-6">
+          <p className="text-xs font-bold tracking-[0.25em] text-emerald-400 uppercase">
+            Entrenamiento en curso
+          </p>
+          <h2 className="mt-2 text-2xl font-extrabold tracking-tight">
+            {draftActual.nombre}
+            {draftActual.dia ? (
+              <span className="ml-2 text-base font-semibold text-emerald-300/80">
+                · Día {draftActual.dia}
+              </span>
+            ) : null}
+          </h2>
+          <p className="mt-2 max-w-xl text-sm text-emerald-100/70">
+            Lo que cargaste quedó guardado automáticamente. Retomá la sesión
+            donde la dejaste, aunque la app se haya cerrado.
+          </p>
+          <a
+            href={`/alumno/entrenamientos/${draftActual.workoutId}`}
+            className="mt-4 inline-flex rounded-lg bg-white px-5 py-2.5 text-sm font-bold text-zinc-950 transition hover:bg-zinc-200"
+          >
+            Continuar entrenamiento →
+          </a>
+        </section>
+      ) : null}
 
       {programs.length > 0 ? (
         <section className="flex flex-col gap-4">

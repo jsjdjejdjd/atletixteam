@@ -1,6 +1,7 @@
+// v7: abre la app en la sesión de entrenamiento al tocar la notificación.
 // v6: se dejo de cachear respuestas (ver handler "fetch"). El activate borra
 // todo lo que dejo la v5, que tiene HTML autenticado y RSC viejos guardados.
-const CACHE = "atletix-v6";
+const CACHE = "atletix-v7";
 
 // ---- Estado del cronómetro de descanso en el SW ----
 // La página le envía `rest:start`/`rest:stop` con `endsAt` (timestamp ms).
@@ -11,6 +12,8 @@ const REST_TAG = "atletix-rest";
 const REST_FIN_TAG = "atletix-rest-fin";
 let restTimer = null;
 let restEndsAt = null;
+// Pantalla desde la que se inició el descanso: la notificación la reabre ahí.
+let restUrl = "/alumno";
 
 // El descanso se anuncia en silencio (sin sonido, sin vibración) y el contador
 // se refresca cada 30 segundos en vez de cada segundo: refrescarlo cada segundo
@@ -70,9 +73,10 @@ function tickRest() {
     .catch(() => {});
 }
 
-function startRest(endsAt, titulo, body) {
+function startRest(endsAt, titulo, body, url) {
   clearRest();
   restEndsAt = endsAt;
+  if (typeof url === "string" && url.startsWith("/")) restUrl = url;
   tickRest();
   restTimer = setInterval(tickRest, REFRESH_MS);
 
@@ -115,7 +119,7 @@ self.addEventListener("message", (e) => {
   if (data.type === "rest:start") {
     const endsAt = Number(data.endsAt);
     if (!Number.isFinite(endsAt)) return;
-    startRest(endsAt, data.titulo, data.body);
+    startRest(endsAt, data.titulo, data.body, data.url);
   } else if (data.type === "rest:stop") {
     clearRest();
   }
@@ -135,7 +139,7 @@ self.addEventListener("notificationclick", (e) => {
           return;
         }
       }
-      if ("openWindow" in self) return self.clients.openWindow("/");
+      if ("openWindow" in self) return self.clients.openWindow(restUrl);
     })
   );
 });

@@ -141,11 +141,19 @@ function restRemaining(endsAt: number): number {
 
 function readStoredRest(): { endsAt: number; remaining: number } | null {
   try {
-    const raw = sessionStorage.getItem(REST_KEY);
+    // localStorage (y no sessionStorage): si Android/iOS mata la PWA en
+    // segundo plano, el descanso igual se recupera al volver.
+    const raw = localStorage.getItem(REST_KEY);
     if (!raw) return null;
     const { endsAt } = JSON.parse(raw) as { endsAt?: number };
     if (typeof endsAt !== "number") return null;
-    return { endsAt, remaining: restRemaining(endsAt) };
+    const remaining = restRemaining(endsAt);
+    if (remaining <= 0) {
+      // El descanso ya terminó mientras la app estaba cerrada.
+      localStorage.removeItem(REST_KEY);
+      return null;
+    }
+    return { endsAt, remaining };
   } catch {
     return null;
   }
@@ -582,11 +590,19 @@ export function LiveWorkout({
   const persistRest = useCallback((endsAt: number | null, running: boolean, remaining: number | null) => {
     try {
       if (endsAt === null || remaining === null || !running) {
-        sessionStorage.removeItem(REST_KEY);
+        localStorage.removeItem(REST_KEY);
       } else {
-        sessionStorage.setItem(REST_KEY, JSON.stringify({ endsAt, remaining }));
+        localStorage.setItem(REST_KEY, JSON.stringify({ endsAt, remaining }));
       }
     } catch { /* sin storage */ }
+  }, []);
+
+  // Al volver de un cierre en segundo plano el aviso del service worker puede
+  // haber quedado desincronizado: lo re-sincronizamos con el descanso guardado.
+  useEffect(() => {
+    const stored = readStoredRest();
+    if (stored) void iniciarCronometroNotificacion(stored.remaining);
+    else void detenerCronometroNotificacion();
   }, []);
 
   const notifyRestFinished = useCallback(async () => {
