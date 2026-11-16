@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button, Field, TextInput } from "@/components/ui";
 import { NuevoEjercicioForm } from "@/components/nuevo-ejercicio-form";
+import { YouTubeThumb } from "@/components/youtube-thumb";
 import {
   iniciarCronometroNotificacion,
   detenerCronometroNotificacion,
@@ -1199,6 +1200,14 @@ function ExerciseCard({
         ) : null}
       </div>
 
+      {t.video_url ? (
+        <YouTubeThumb
+          url={t.video_url}
+          title={exercise.name}
+          className="mt-2.5 w-full max-w-[240px]"
+        />
+      ) : null}
+
       <div className="mt-2.5 flex flex-wrap items-center gap-1.5 text-xs">
         {t.series ? (
           <span className="rounded-md bg-white px-2.5 py-1 font-bold text-zinc-950">
@@ -1332,17 +1341,6 @@ function ExerciseCard({
           placeholder="Comentario de la sesión (opcional)"
           className="w-full rounded-md border border-zinc-800 bg-zinc-950 px-2.5 py-1.5 text-sm text-zinc-100 outline-none focus:border-zinc-500 sm:max-w-md"
         />
-
-        {t.video_url ? (
-          <a
-            href={t.video_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="rounded-md border border-zinc-700 px-2.5 py-1.5 text-xs font-medium text-zinc-300 transition hover:border-zinc-500"
-          >
-            ▶ Ver video
-          </a>
-        ) : null}
       </div>
     </li>
   );
