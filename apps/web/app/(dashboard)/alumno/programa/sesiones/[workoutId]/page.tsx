@@ -13,6 +13,7 @@ type Row = {
   series: number | null;
   repeticiones: string | null;
   descanso_segundos: number | null;
+  video_url: string | null;
 };
 
 type LibraryExercise = {
@@ -20,6 +21,7 @@ type LibraryExercise = {
   nombre: string;
   categoria: string | null;
   dificultad: string | null;
+  video_url: string | null;
 };
 
 export default async function EditarSesionPage({
@@ -38,13 +40,13 @@ export default async function EditarSesionPage({
       .single(),
     supabase
       .from("workout_exercises")
-      .select("id, exercise_id, orden, series, repeticiones, descanso_segundos")
+      .select("id, exercise_id, orden, series, repeticiones, descanso_segundos, video_url")
       .eq("workout_id", workoutId)
       .is("athlete_id", null)
       .order("orden", { ascending: true }),
     supabase
       .from("exercises")
-      .select("id, nombre, categoria, dificultad")
+      .select("id, nombre, categoria, dificultad, video_url")
       .eq("activo", true)
       .order("nombre", { ascending: true }),
   ]);
@@ -96,6 +98,7 @@ export default async function EditarSesionPage({
     const ex = it.exercise_id ? exerciseMap.get(it.exercise_id) : undefined;
     return {
       ...it,
+      video_url: it.video_url ?? ex?.video_url ?? null,
       exercise_nombre: ex?.nombre ?? "Ejercicio eliminado de la biblioteca",
       exercise_categoria: ex?.categoria ?? "",
     };

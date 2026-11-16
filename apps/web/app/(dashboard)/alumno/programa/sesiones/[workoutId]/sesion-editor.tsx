@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Button, TextInput } from "@/components/ui";
 import { NuevoEjercicioForm } from "@/components/nuevo-ejercicio-form";
+import { YouTubeThumb } from "@/components/youtube-thumb";
 
 type Row = {
   id: string;
@@ -13,6 +14,7 @@ type Row = {
   series: number | null;
   repeticiones: string | null;
   descanso_segundos: number | null;
+  video_url: string | null;
   exercise_nombre: string;
   exercise_categoria: string;
 };
@@ -22,6 +24,7 @@ type LibraryExercise = {
   nombre: string;
   categoria: string | null;
   dificultad: string | null;
+  video_url: string | null;
 };
 
 export function SesionEditor({
@@ -171,6 +174,13 @@ export function SesionEditor({
                   <DeleteButton row={row} />
                 </div>
               </div>
+              {row.video_url ? (
+                <YouTubeThumb
+                  url={row.video_url}
+                  title={row.exercise_nombre}
+                  className="mt-3 w-full max-w-[200px]"
+                />
+              ) : null}
               <RowFields row={row} />
             </li>
           ))}
