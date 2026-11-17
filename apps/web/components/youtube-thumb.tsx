@@ -1,3 +1,7 @@
+"use client";
+
+import { useState } from "react";
+
 const YOUTUBE_ID_RE =
   /(?:youtube\.com\/(?:shorts\/|watch\?v=|embed\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/;
 
@@ -22,12 +26,17 @@ export function YouTubeThumb({
   title?: string;
   className?: string;
 }) {
+  // Estado para el caso de que YouTube bloquee la miniatura: así el acceso
+  // al video nunca queda invisible.
+  const [imgError, setImgError] = useState(false);
+
   if (!url) return null;
 
   const id = youtubeVideoId(url);
   const esReferencia = /youtube\.com\/(?:results|search)\?/.test(url);
+  const label = esReferencia ? "Ver referencia" : "Ver video";
 
-  if (!id) {
+  if (!id || imgError) {
     return (
       <a
         href={url}
@@ -40,7 +49,7 @@ export function YouTubeThumb({
             : "border-zinc-700 text-zinc-300 hover:border-zinc-500"
         } ${className}`}
       >
-        {esReferencia ? "🔎 Ver referencia" : "▶ Ver video"}
+        {esReferencia ? "🔎" : "▶"} {label}
       </a>
     );
   }
@@ -58,6 +67,7 @@ export function YouTubeThumb({
         src={`https://i.ytimg.com/vi/${id}/mqdefault.jpg`}
         alt={title ? `Miniatura del video de ${title}` : "Miniatura del video"}
         loading="lazy"
+        onError={() => setImgError(true)}
         className="aspect-video w-full object-cover"
       />
       <span className="absolute inset-0 flex items-center justify-center bg-black/20 transition group-hover:bg-black/35">
@@ -65,8 +75,8 @@ export function YouTubeThumb({
           ▶
         </span>
       </span>
-      <span className="absolute bottom-1 left-1.5 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-semibold text-white/90">
-        Video
+      <span className="absolute bottom-1 left-1.5 rounded bg-black/70 px-1.5 py-0.5 text-[11px] font-semibold text-white/90">
+        ▶ {label}
       </span>
     </a>
   );
