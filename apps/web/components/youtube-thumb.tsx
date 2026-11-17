@@ -25,6 +25,7 @@ export function YouTubeThumb({
   if (!url) return null;
 
   const id = youtubeVideoId(url);
+  const esReferencia = /youtube\.com\/(?:results|search)\?/.test(url);
 
   if (!id) {
     return (
@@ -32,9 +33,14 @@ export function YouTubeThumb({
         href={url}
         target="_blank"
         rel="noopener noreferrer"
-        className={`inline-flex w-fit items-center gap-1.5 rounded-md border border-zinc-700 px-2.5 py-1.5 text-xs font-medium text-zinc-300 transition hover:border-zinc-500 ${className}`}
+        title={esReferencia ? "Buscar demostración en YouTube" : "Ver video"}
+        className={`inline-flex w-fit items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition ${
+          esReferencia
+            ? "border-amber-800 bg-amber-950/30 text-amber-200 hover:border-amber-600"
+            : "border-zinc-700 text-zinc-300 hover:border-zinc-500"
+        } ${className}`}
       >
-        ▶ Ver video
+        {esReferencia ? "🔎 Ver referencia" : "▶ Ver video"}
       </a>
     );
   }
